@@ -15,6 +15,7 @@ class Person:
     walk_speed: float               # preferred walking speed relative to the belt (m/s)
     lane: int = -1                  # set by the strategy on arrival
     walking: bool = False           # whether they actually walk on the escalator
+    kind: str = ""                  # stander/walker/defector/blocker, set by the strategy
     pos: float = 0.0                # distance from the bottom along the incline (m)
     speed: float = 0.0              # ground speed during the last step (m/s)
     board_time: Optional[float] = None
@@ -32,4 +33,5 @@ class Person:
             "speed": self.speed,
             "walking": self.walking,
             "wants_to_walk": self.wants_to_walk,
+            "kind": self.kind,
         }

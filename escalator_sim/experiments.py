@@ -1,7 +1,15 @@
 """Batch experiments: replications, strategy comparisons and parameter sweeps.
 
-These are plain functions returning plain data. The command line adds parallel
-running and formatting on top; a web front end can call them directly.
+Each experiment is split into three steps so callers can control how the runs
+are executed:
+
+    jobs = plan_compare(...)            # list of independent runs
+    runs = [run_one(job) for job in jobs]   # serially, in a pool, or one per frame
+    data = collect_compare(jobs, runs)
+
+`compare()` and `sweep()` do all three. Everything is plain data, so the same
+functions serve the command line (with a process pool) and the browser worker
+(one job at a time, with progress and cancel).
 """
 from __future__ import annotations
 
@@ -11,68 +19,93 @@ from .config import SimConfig
 from .engine import Simulation
 from .metrics import aggregate
 
-# A "map" function lets callers swap in a parallel pool; the default is serial.
-MapFn = Callable[[Callable[[tuple], dict], list[tuple]], list[dict]]
+# A job is (config dict, strategy name, seed); it is a tuple so it pickles cheaply.
+Job = tuple
+MapFn = Callable[[Callable[[Job], dict], list[Job]], list[dict]]
 
 
-def run_one(job: tuple[dict[str, Any], str, int]) -> dict[str, Any]:
-    """Run one simulation. Takes a tuple so it can be sent to a process pool."""
+def run_one(job: Job) -> dict[str, Any]:
+    """Run one simulation to the end and return its results."""
     config_dict, strategy, seed = job
-    sim = Simulation(SimConfig.from_dict(config_dict), strategy, seed)
-    return sim.run()
+    return Simulation(SimConfig.from_dict(config_dict), strategy, seed).run()
 
 
 def _serial_map(fn, jobs):
     return [fn(job) for job in jobs]
 
 
-def compare(
-    config: SimConfig,
-    strategies: Sequence[str],
-    replications: int,
-    base_seed: int = 1,
-    map_fn: Optional[MapFn] = None,
-) -> dict[str, Any]:
-    """Run every strategy with the same seeds (same crowds) and aggregate."""
-    map_fn = map_fn or _serial_map
-    seeds = [base_seed + i for i in range(replications)]
+def _seeds(replications: int, base_seed: int) -> list[int]:
+    if replications < 1:
+        raise ValueError("replications must be >= 1")
+    return [base_seed + i for i in range(replications)]
+
+
+# ------------------------------------------------------------------ compare
+
+def plan_compare(config: SimConfig, strategies: Sequence[str], replications: int,
+                 base_seed: int = 1) -> dict[str, Any]:
+    seeds = _seeds(replications, base_seed)
     jobs = [(config.to_dict(), s, seed) for s in strategies for seed in seeds]
-    runs = map_fn(run_one, jobs)
-    by_strategy = {s: runs[i * replications:(i + 1) * replications] for i, s in enumerate(strategies)}
+    return {"kind": "compare", "config": config.to_dict(), "strategies": list(strategies),
+            "seeds": seeds, "jobs": jobs}
+
+
+def collect_compare(plan: dict[str, Any], runs: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    n = len(plan["seeds"])
     return {
-        "config": config.to_dict(),
-        "seeds": seeds,
+        "config": plan["config"],
+        "seeds": plan["seeds"],
         "strategies": {
-            s: {"summary": aggregate(rs), "runs": rs} for s, rs in by_strategy.items()
+            s: {"summary": aggregate(rs), "runs": list(rs)}
+            for i, s in enumerate(plan["strategies"])
+            for rs in [runs[i * n:(i + 1) * n]]
         },
     }
 
 
-def sweep(
-    config: SimConfig,
-    param: str,
-    values: Sequence[Any],
-    strategies: Sequence[str],
-    replications: int,
-    base_seed: int = 1,
-    map_fn: Optional[MapFn] = None,
-) -> dict[str, Any]:
-    """Compare strategies at each value of one parameter."""
+def compare(config: SimConfig, strategies: Sequence[str], replications: int,
+            base_seed: int = 1, map_fn: Optional[MapFn] = None) -> dict[str, Any]:
+    """Run every strategy with the same seeds (same crowds) and aggregate."""
+    plan = plan_compare(config, strategies, replications, base_seed)
+    return collect_compare(plan, (map_fn or _serial_map)(run_one, plan["jobs"]))
+
+
+# -------------------------------------------------------------------- sweep
+
+def plan_sweep(config: SimConfig, param: str, values: Sequence[Any], strategies: Sequence[str],
+               replications: int, base_seed: int = 1) -> dict[str, Any]:
     if param not in SimConfig.field_names():
         raise ValueError(f"unknown parameter {param!r}")
     configs = [config.with_changes(**{param: v}) for v in values]  # validates early
-    map_fn = map_fn or _serial_map
-    seeds = [base_seed + i for i in range(replications)]
+    seeds = _seeds(replications, base_seed)
     jobs = [(c.to_dict(), s, seed) for c in configs for s in strategies for seed in seeds]
-    runs = map_fn(run_one, jobs)
+    return {"kind": "sweep", "config": config.to_dict(), "param": param,
+            "values": [getattr(c, param) for c in configs], "strategies": list(strategies),
+            "seeds": seeds, "jobs": jobs}
 
+
+def collect_sweep(plan: dict[str, Any], runs: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    n = len(plan["seeds"])
     points = []
     i = 0
-    for value in values:
+    for value in plan["values"]:
         point = {"value": value, "strategies": {}}
-        for s in strategies:
-            rs = runs[i:i + replications]
-            i += replications
-            point["strategies"][s] = {"summary": aggregate(rs), "runs": rs}
+        for s in plan["strategies"]:
+            rs = runs[i:i + n]
+            i += n
+            point["strategies"][s] = {"summary": aggregate(rs), "runs": list(rs)}
         points.append(point)
-    return {"config": config.to_dict(), "param": param, "seeds": seeds, "points": points}
+    return {"config": plan["config"], "param": plan["param"], "seeds": plan["seeds"],
+            "points": points}
+
+
+def sweep(config: SimConfig, param: str, values: Sequence[Any], strategies: Sequence[str],
+          replications: int, base_seed: int = 1, map_fn: Optional[MapFn] = None) -> dict[str, Any]:
+    """Compare strategies at each value of one parameter."""
+    plan = plan_sweep(config, param, values, strategies, replications, base_seed)
+    return collect_sweep(plan, (map_fn or _serial_map)(run_one, plan["jobs"]))
+
+
+def collect(plan: dict[str, Any], runs: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """Collect either kind of experiment."""
+    return (collect_compare if plan["kind"] == "compare" else collect_sweep)(plan, runs)

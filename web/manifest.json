@@ -1,0 +1,16 @@
+{
+  "package_dir": "../escalator_sim",
+  "files": [
+    "__init__.py",
+    "__main__.py",
+    "cli.py",
+    "config.py",
+    "engine.py",
+    "experiments.py",
+    "metrics.py",
+    "person.py",
+    "report.py",
+    "session.py",
+    "strategies.py"
+  ]
+}

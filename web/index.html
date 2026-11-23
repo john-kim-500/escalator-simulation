@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Escalator Simulator</title>
+  <meta name="description" content="Watch standing on both sides compete with stand-right-walk-left, on the same crowd.">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>Escalator Simulator</h1>
+      <p class="tagline">Stand on both sides, or stand on the right and walk on the left?</p>
+    </div>
+    <nav class="view-tabs segmented" id="view-tabs" aria-label="View" hidden>
+      <button type="button" data-view="live" aria-pressed="true">Live</button>
+      <button type="button" data-view="experiments" aria-pressed="false">Experiments</button>
+    </nav>
+    <p class="engine-version" id="engine-version"></p>
+  </header>
+
+  <div id="loading" class="loading" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p id="loading-message">Starting…</p>
+    <p class="loading-note">The first visit downloads the Python runtime (about 12 MB).
+      Later visits load it from the browser cache.</p>
+  </div>
+
+  <div id="fatal" class="fatal card" role="alert" hidden></div>
+
+  <main id="app" class="layout" hidden>
+    <aside class="sidebar card" id="config" aria-label="Settings"></aside>
+    <section class="content" id="live" aria-label="Live view"></section>
+    <section class="content" id="experiments" aria-label="Experiments" hidden></section>
+  </main>
+</body>
+</html>
