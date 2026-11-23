@@ -18,7 +18,8 @@ python3 -m http.server 8000      # from the project folder
 ```
 
 Then open http://localhost:8000/web/. You can change any setting and watch both
-strategies run side by side on the same crowd. The simulator runs entirely in
+strategies run side by side on the same crowd, or run comparisons and sweeps
+over many crowds, with charts and CSV/JSON downloads. The simulator runs entirely in
 your browser through Pyodide, and needs internet access on first load to
 download the Python runtime. In Docker, start the container with
 `-p 8000:8000`. See [docs/USAGE.md](docs/USAGE.md#web-interface) for details.

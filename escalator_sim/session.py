@@ -15,6 +15,7 @@ from . import __version__
 from .config import GROUPS, PARAM_INFO, PRESETS, SimConfig, check_values, convert_values
 from .engine import Simulation
 from .experiments import collect, plan_compare, plan_sweep, run_one
+from .report import experiment_csv, to_json, winners
 from .strategies import KINDS, available_strategies, get_strategy
 
 
@@ -126,18 +127,46 @@ class Session:
 
     def exp_start(self, spec_json: str) -> str:
         """Plan an experiment. spec: {kind, config, strategies, replications, seed,
-        and for sweeps param, values}. Returns {total}."""
+        and for sweeps param, values}. Returns {done: 0, total}.
+
+        Errors are ValueErrors with the same messages as the command line.
+        """
         spec = json.loads(spec_json)
         config = SimConfig.from_dict({**SimConfig().to_dict(), **spec.get("config", {})})
-        args = (spec["strategies"], int(spec["replications"]), int(spec.get("seed", 1)))
+        strategies = list(spec.get("strategies") or [])
+        if not strategies:
+            raise ValueError("choose at least one strategy")
+        for name in strategies:
+            get_strategy(name, config)  # unknown name or too few lanes
+        args = (strategies, int(spec["replications"]), int(spec.get("seed", 1)))
         if spec["kind"] == "compare":
             self._plan = plan_compare(config, *args)
         elif spec["kind"] == "sweep":
-            self._plan = plan_sweep(config, spec["param"], spec["values"], *args)
+            param = spec["param"]
+            if param not in SimConfig.field_names():
+                raise ValueError(f"unknown parameter {param!r}")
+            raw = list(spec["values"])
+            if not raw:
+                raise ValueError("enter at least one value to sweep")
+            values = []
+            for v in raw:
+                converted, errors = convert_values({param: v})
+                if not errors:
+                    errors = check_values({**config.to_dict(), **converted})
+                if errors:
+                    raise ValueError(f"{param} = {v}: {errors[0][1]}")
+                swept = config.with_changes(**converted)
+                for name in strategies:
+                    try:
+                        get_strategy(name, swept)
+                    except ValueError as exc:
+                        raise ValueError(f"{param} = {v}: {exc}") from None
+                values.append(converted[param])
+            self._plan = plan_sweep(config, param, values, *args)
         else:
             raise ValueError(f"unknown experiment kind {spec['kind']!r}")
         self._runs = []
-        return dumps({"total": len(self._plan["jobs"])})
+        return dumps({"done": 0, "total": len(self._plan["jobs"])})
 
     def exp_step(self, budget_seconds: float = 0.25) -> str:
         """Run jobs until about `budget_seconds` have passed. Returns {done, total}."""
@@ -152,9 +181,14 @@ class Session:
         return dumps({"done": len(self._runs), "total": len(jobs)})
 
     def exp_result(self) -> str:
+        """{data, winners, csv, json}: data is what compare()/sweep() return;
+        winners uses the command line's tie rule on throughput (one entry per
+        sweep value); csv/json are exactly what `--output csv|json` prints."""
         if self._plan is None or len(self._runs) < len(self._plan["jobs"]):
             raise ValueError("experiment not finished")
-        return dumps(collect(self._plan, self._runs))
+        data = collect(self._plan, self._runs)
+        return dumps({"data": data, "winners": winners(data),
+                      "csv": experiment_csv(data), "json": to_json(data)})
 
     def exp_cancel(self) -> None:
         self._plan, self._runs = None, []

@@ -1,10 +1,11 @@
 """Tests for the engine pieces the GUI relies on."""
+import io
 import json
 import math
 import unittest
 from pathlib import Path
 
-from escalator_sim import SimConfig, Simulation, compare, sweep
+from escalator_sim import SimConfig, Simulation, cli, compare, report, sweep
 from escalator_sim.config import PARAM_INFO, PRESETS, GROUPS
 from escalator_sim.experiments import (collect_compare, collect_sweep, plan_compare,
                                        plan_sweep, run_one)
@@ -163,7 +164,7 @@ class SessionApi(unittest.TestCase):
         s = Session()
         spec = {"kind": "compare", "config": SHORT, "strategies": ["stand-both", "walk-left"],
                 "replications": 2, "seed": 1}
-        self.assertEqual(json.loads(s.exp_start(json.dumps(spec)))["total"], 4)
+        self.assertEqual(json.loads(s.exp_start(json.dumps(spec))), {"done": 0, "total": 4})
         progress = json.loads(s.exp_step(0))
         self.assertEqual(progress["done"], 1)
         with self.assertRaises(ValueError):
@@ -171,8 +172,43 @@ class SessionApi(unittest.TestCase):
         while progress["done"] < progress["total"]:
             progress = json.loads(s.exp_step(0))
         result = json.loads(s.exp_result())
-        expected = json.loads(dumps(compare(SimConfig(**SHORT), ["stand-both", "walk-left"], 2, 1)))
-        self.assertEqual(result, expected)
+        data = compare(SimConfig(**SHORT), ["stand-both", "walk-left"], 2, 1)
+        self.assertEqual(result["data"], json.loads(dumps(data)))
+        self.assertEqual(result["json"], report.to_json(data))
+        self.assertEqual(result["csv"], report.compare_csv(data))
+        self.assertEqual(len(result["winners"]), 1)
+
+    def test_sweep_result_matches_command_line(self):
+        s = Session()
+        spec = {"kind": "sweep", "config": SHORT, "strategies": ["stand-both", "walk-left"],
+                "replications": 2, "param": "lanes", "values": [2, "3"]}
+        s.exp_start(json.dumps(spec))
+        while json.loads(s.exp_step(0))["done"] < 8:
+            pass
+        result = json.loads(s.exp_result())
+        out = io.StringIO()
+        cli.main(["sweep", "--param", "lanes", "--values", "2,3", "-n", "2", "--output", "csv",
+                  *[f"--{k.replace('_', '-')}={v}" for k, v in SHORT.items()]], out)
+        self.assertEqual(result["csv"], out.getvalue())
+        self.assertEqual([p["value"] for p in result["data"]["points"]], [2, 3])
+        self.assertEqual(len(result["winners"]), 2)
+
+    def test_experiment_errors_name_the_problem(self):
+        s = Session()
+        base = {"kind": "sweep", "config": SHORT, "strategies": ["walk-left"],
+                "replications": 1, "param": "lanes", "values": [2, 2.5]}
+        with self.assertRaisesRegex(ValueError, "whole number"):
+            s.exp_start(json.dumps(base))
+        with self.assertRaisesRegex(ValueError, "walk_fraction = 2"):
+            s.exp_start(json.dumps({**base, "param": "walk_fraction", "values": [0, 2]}))
+        with self.assertRaisesRegex(ValueError, "lanes = 1: walk-left"):
+            s.exp_start(json.dumps({**base, "values": [2, 1]}))
+        with self.assertRaisesRegex(ValueError, "at least one value"):
+            s.exp_start(json.dumps({**base, "values": []}))
+        with self.assertRaisesRegex(ValueError, "at least one strategy"):
+            s.exp_start(json.dumps({**base, "kind": "compare", "strategies": []}))
+        with self.assertRaisesRegex(ValueError, "lane"):
+            s.exp_start(json.dumps({**base, "kind": "compare", "config": {**SHORT, "lanes": 1}}))
 
     def test_sweep_experiment_and_cancel(self):
         s = Session()

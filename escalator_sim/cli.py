@@ -5,28 +5,14 @@ Every SimConfig parameter is available as a flag (e.g. --arrival-rate 90).
 from __future__ import annotations
 
 import argparse
-import csv
-import io
-import json
 import sys
 from typing import Any, Optional, Sequence
 
 from .config import GROUPS, PARAM_INFO, SimConfig
 from .engine import Simulation
 from .experiments import compare, sweep
+from .report import TABLE_METRICS, experiment_csv, flat_run, to_csv, to_json, winner
 from .strategies import available_strategies
-
-# Metrics shown in the text tables: (key, header, format)
-TABLE_METRICS = [
-    ("throughput_per_min", "Thru/min", "{:.1f}"),
-    ("wait_mean", "Wait avg s", "{:.1f}"),
-    ("wait_p95", "Wait p95 s", "{:.1f}"),
-    ("trip_mean", "Trip avg s", "{:.1f}"),
-    ("queue_max", "Max queue", "{:.0f}"),
-    ("queue_end", "Queue end", "{:.0f}"),
-    ("walked_share", "Walked", "{:.0%}"),
-]
-
 
 # ------------------------------------------------------------------ parsing
 
@@ -119,26 +105,11 @@ def render_table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> str:
     return "\n".join(lines)
 
 
-def _csv(rows: list[dict[str, Any]]) -> str:
-    buf = io.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=list(rows[0]) if rows else [], lineterminator="\n")
-    writer.writeheader()
-    writer.writerows(rows)
-    return buf.getvalue()
-
-
 def _describe(config: SimConfig) -> str:
     warnings = "".join(f"WARNING: {msg}. Raise --{field}.\n" for field, msg in config.warnings())
     return warnings + (f"Escalator {config.length:.1f} m long ({config.rise:g} m rise), belt {config.belt_speed:g} m/s; "
             f"{config.arrival_rate:g} arrivals/min, {config.walk_fraction:.0%} want to walk; "
             f"measured {config.duration - config.warmup:g} s after {config.warmup:g} s warm-up.")
-
-
-def _flat_run(r: dict[str, Any]) -> dict[str, Any]:
-    flat = {k: v for k, v in r.items() if not isinstance(v, list)}
-    for i, v in enumerate(r["throughput_by_lane"]):
-        flat[f"throughput_lane{i}"] = v
-    return flat
 
 
 def _relative(a: Optional[float], b: Optional[float]) -> str:
@@ -164,9 +135,9 @@ def cmd_run(args, out) -> None:
     config = config_from_args(args)
     result = Simulation(config, args.strategy, args.seed).run()
     if args.output == "json":
-        out.write(json.dumps({"config": config.to_dict(), "result": result}, indent=2) + "\n")
+        out.write(to_json({"config": config.to_dict(), "result": result}))
     elif args.output == "csv":
-        out.write(_csv([_flat_run(result)]))
+        out.write(to_csv([flat_run(result)]))
     else:
         out.write(_describe(config) + "\n")
         out.write(f"Strategy {result['strategy']}, seed {result['seed']}\n\n")
@@ -192,10 +163,10 @@ def cmd_compare(args, out) -> None:
     data = compare(config, args.strategies, args.replications, args.seed, _map_fn(args.jobs))
     summaries = {s: d["summary"] for s, d in data["strategies"].items()}
     if args.output == "json":
-        out.write(json.dumps(data, indent=2) + "\n")
+        out.write(to_json(data))
         return
     if args.output == "csv":
-        out.write(_csv([_flat_run(r) for d in data["strategies"].values() for r in d["runs"]]))
+        out.write(experiment_csv(data))
         return
     out.write(_describe(config) + "\n")
     out.write(f"{args.replications} replications per strategy (seeds {data['seeds'][0]}-{data['seeds'][-1]}); "
@@ -229,36 +200,16 @@ def _parse_values(param: str, text: str) -> list[Any]:
     return values
 
 
-def _winner(stats: dict[str, dict]) -> str:
-    """Strategy with the highest mean, or 'tie' if its lead is within the 95% CIs."""
-    ranked = sorted(stats, key=lambda s: stats[s]["mean"] or 0, reverse=True)
-    if len(ranked) < 2:
-        return ranked[0] if ranked else "-"
-    best, second = stats[ranked[0]], stats[ranked[1]]
-    margin = (best["ci95"] or 0) + (second["ci95"] or 0)
-    if best["ci95"] is None or (best["mean"] or 0) - (second["mean"] or 0) <= margin:
-        return "tie"
-    return ranked[0]
-
-
 def cmd_sweep(args, out) -> None:
     config = config_from_args(args)
     values = _parse_values(args.param, args.values)
     data = sweep(config, args.param, values, args.strategies, args.replications,
                  args.seed, _map_fn(args.jobs))
     if args.output == "json":
-        out.write(json.dumps(data, indent=2) + "\n")
+        out.write(to_json(data))
         return
     if args.output == "csv":
-        rows = []
-        for point in data["points"]:
-            for s, d in point["strategies"].items():
-                row = {args.param: point["value"], "strategy": s}
-                for key, stats in d["summary"].items():
-                    row[f"{key}_mean"] = stats["mean"]
-                    row[f"{key}_ci95"] = stats["ci95"]
-                rows.append(row)
-        out.write(_csv(rows))
+        out.write(experiment_csv(data))
         return
 
     out.write(_describe(config) + "\n")
@@ -276,7 +227,7 @@ def cmd_sweep(args, out) -> None:
         row += [_fmt(sums[s]["throughput_per_min"]["mean"], "{:.1f}", sums[s]["throughput_per_min"]["ci95"])
                 for s in strategies]
         row += [_fmt(sums[s]["wait_mean"]["mean"], "{:.1f}", sums[s]["wait_mean"]["ci95"]) for s in strategies]
-        row.append(_winner({s: sums[s]["throughput_per_min"] for s in strategies}))
+        row.append(winner({s: sums[s]["throughput_per_min"] for s in strategies}))
         rows.append(row)
     out.write(render_table(headers, rows) + "\n")
 

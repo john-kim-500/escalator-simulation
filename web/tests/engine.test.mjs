@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { loadEngine, PYODIDE_VERSION, pythonErrorMessage } from "../engine-core.js";
+import { loadEngine, PYODIDE_VERSION, pythonErrorMessage, runExperiment } from "../engine-core.js";
 
 const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoDir = path.resolve(webDir, "..");
@@ -93,8 +93,27 @@ test("experiments run step by step", { skip }, () => {
   assert.equal(total, 4);
   let p;
   do p = engine.expStep(0); while (p.done < p.total);
-  const result = engine.expResult();
-  assert.equal(result.strategies["walk-left"].runs.length, 2);
+  const { data, winners, csv, json } = engine.expResult();
+  assert.equal(data.strategies["walk-left"].runs.length, 2);
+  assert.equal(winners.length, 1);
+  assert.ok(csv.startsWith("strategy,seed,"));
+  assert.deepEqual(JSON.parse(json).seeds, [1, 2]);
+});
+
+test("runExperiment drives an experiment with progress and cancel", { skip }, async () => {
+  const spec = { kind: "sweep", config: SHORT, strategies: ["stand-both", "walk-left"],
+    replications: 1, seed: 1, param: "walk_fraction", values: [0, 0.5] };
+  const seen = [];
+  const out = await runExperiment(engine, spec, { onProgress: (p) => seen.push(p.done), sliceSeconds: 0 });
+  assert.equal(out.cancelled, false);
+  assert.deepEqual(seen, [0, 1, 2, 3, 4]);
+  assert.equal(out.result.data.points.length, 2);
+  assert.equal(out.result.winners.length, 2);
+
+  let slices = 0;
+  const cancelled = await runExperiment(engine, spec, { sliceSeconds: 0, isCancelled: () => ++slices > 2 });
+  assert.deepEqual(cancelled, { cancelled: true });
+  assert.throws(() => engine.expResult(), /experiment not finished/);
 });
 
 test("Python errors become readable messages", { skip }, () => {

@@ -59,6 +59,30 @@ _session = Session()
   };
 }
 
+/**
+ * Run an experiment to the end in slices, reporting progress. Between slices it
+ * awaits `pause()` (the worker uses setTimeout so a cancel message can arrive)
+ * and stops early if `isCancelled()` is true.
+ * @returns {Promise<{cancelled: true} | {cancelled: false, result: object}>}
+ */
+export async function runExperiment(engine, spec, {
+  onProgress = () => {}, isCancelled = () => false,
+  pause = () => new Promise((resolve) => setTimeout(resolve, 0)), sliceSeconds = 0.2,
+} = {}) {
+  let progress = engine.expStart(spec);
+  onProgress(progress);
+  while (progress.done < progress.total) {
+    await pause();
+    if (isCancelled()) {
+      engine.expCancel();
+      return { cancelled: true };
+    }
+    progress = engine.expStep(sliceSeconds);
+    onProgress(progress);
+  }
+  return { cancelled: false, result: engine.expResult() };
+}
+
 /** The last line of a Python traceback, e.g. "ValueError: rise must be > 0". */
 export function pythonErrorMessage(err) {
   const lines = String(err?.message ?? err).trim().split("\n");

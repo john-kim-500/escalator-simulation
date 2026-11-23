@@ -5,6 +5,7 @@ import { EscalatorCanvas, KIND_SHAPES, drawShape } from "./escalator-canvas.js";
 import { LiveChart } from "./live-chart.js";
 import { cssVar, onThemeChange } from "./canvas-util.js";
 import { formatChange, formatClock, formatNumber, formatPercent } from "./format.js";
+import { el } from "./dom.js";
 
 const SPEEDS = [1, 2, 5, 10, 25, 50];
 const DEFAULT_SPEED = 10;
@@ -12,17 +13,6 @@ const MAX_QUEUE = 80;          // queueing people per lane sent with each snapsh
 const MAX_FRAME_SECONDS = 0.25; // ignore longer gaps (e.g. a background tab)
 const HISTORY_EVERY = 1.0;      // simulated seconds between chart points
 const SERIES_VARS = ["--series-1", "--series-2", "--series-3"];
-
-function el(tag, attrs = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [key, value] of Object.entries(attrs)) {
-    if (key === "class") node.className = value;
-    else if (key === "text") node.textContent = value;
-    else if (value !== false && value != null) node.setAttribute(key, value === true ? "" : value);
-  }
-  node.append(...children.filter(Boolean));
-  return node;
-}
 
 export class LiveView {
   constructor(root, client, info) {
@@ -33,6 +23,7 @@ export class LiveView {
     this.seed = 1;
     this.speed = DEFAULT_SPEED;
     this.playing = true;
+    this.active = true; // false while another view is showing
     this.values = null;
     this.state = null;
     this.generation = 0;
@@ -48,7 +39,7 @@ export class LiveView {
     requestAnimationFrame((t) => this.tick(t));
     document.addEventListener("keydown", (e) => {
       const typing = e.target.closest?.("input, select, textarea, button");
-      if (e.code === "Space" && !typing) {
+      if (e.code === "Space" && !typing && this.active) {
         e.preventDefault();
         this.togglePlay();
       }
@@ -110,6 +101,8 @@ export class LiveView {
     this.clock = el("div", { class: "clock", "aria-live": "off" });
     this.progress = el("progress", { max: 1, value: 0, "aria-label": "Run progress" });
     this.playButton = playButton;
+    this.seedInput = seedInput;
+    this.strategyBoxes = strategyBoxes;
     this.status = el("p", { class: "run-status", role: "status" });
 
     const controls = el("div", { class: "controls card" },
@@ -167,6 +160,28 @@ export class LiveView {
     this.simsGrid.replaceChildren(...this.cards.map((c) => c.card));
   }
 
+  /** Pause the animation while another view is showing (the run is kept). */
+  setActive(active) {
+    this.active = active;
+    this.lastFrame = null;
+  }
+
+  /**
+   * Choose the seed and strategies for the next start() (e.g. "Watch this
+   * scenario" from the experiments view). Doesn't restart by itself.
+   */
+  setScenario({ seed, strategies }) {
+    if (Number.isFinite(seed)) {
+      this.seed = Math.trunc(seed);
+      this.seedInput.value = this.seed;
+    }
+    const known = (strategies ?? []).filter((s) => s in this.info.strategies);
+    if (known.length) {
+      this.strategies = known;
+      this.strategyBoxes.querySelectorAll("input").forEach((b) => (b.checked = known.includes(b.value)));
+    }
+  }
+
   // -------------------------------------------------------------- running
 
   /** Start (or restart) a run with new settings. */
@@ -222,7 +237,7 @@ export class LiveView {
     requestAnimationFrame((t) => this.tick(t));
     const elapsed = this.lastFrame == null ? 0 : Math.min((now - this.lastFrame) / 1000, MAX_FRAME_SECONDS);
     this.lastFrame = now;
-    if (!this.playing || !this.state || this.state.done) return;
+    if (!this.active || !this.playing || !this.state || this.state.done) return;
     // Owed simulated time; capped so a slow device doesn't build a backlog.
     this.owed = Math.min(this.owed + elapsed * this.speed, this.speed * 0.5 + this.values.dt);
     if (!this.busy && this.owed >= this.values.dt) this.advanceBy(this.owed);
@@ -336,7 +351,7 @@ export class LiveView {
       el("h2", { class: "card-title", text: "Results" }),
       el("p", { class: "card-note",
         text: `Measured over the ${measured} after the warm-up, for seed ${results[0].seed}. `
-          + "One run is noisy: use the command line's compare for averages over many crowds." }),
+          + "One run is noisy: use Experiments to average over many crowds." }),
       el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))));
     this.results.hidden = false;
   }

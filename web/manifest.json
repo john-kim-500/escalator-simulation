@@ -9,6 +9,7 @@
     "experiments.py",
     "metrics.py",
     "person.py",
+    "report.py",
     "session.py",
     "strategies.py"
   ]

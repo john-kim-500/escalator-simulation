@@ -4,7 +4,7 @@
 // {type: "status", message} while loading and {id, type: "progress", done, total}
 // during experiments.
 
-import { loadEngine, PYODIDE_CDN } from "./engine-core.js";
+import { loadEngine, PYODIDE_CDN, runExperiment } from "./engine-core.js";
 
 const base = new URL("./", import.meta.url);
 
@@ -26,23 +26,6 @@ const ready = (async () => {
 ready.catch((err) => postMessage({ type: "fatal", error: String(err?.message ?? err) }));
 
 let cancelRequested = false;
-const yieldToMessages = () => new Promise((resolve) => setTimeout(resolve, 0));
-
-async function runExperiment(engine, id, spec) {
-  cancelRequested = false;
-  let progress = engine.expStart(spec);
-  postMessage({ id, type: "progress", done: 0, total: progress.total });
-  while (progress.done < progress.total) {
-    await yieldToMessages(); // lets an "exp.cancel" message arrive
-    if (cancelRequested) {
-      engine.expCancel();
-      return { cancelled: true };
-    }
-    progress = engine.expStep(0.2);
-    postMessage({ id, type: "progress", ...progress });
-  }
-  return { cancelled: false, data: engine.expResult() };
-}
 
 const handlers = {
   info: (engine) => ({ ...engine.info(), pyodide: engine.pyodideVersion }),
@@ -51,7 +34,13 @@ const handlers = {
     engine.liveStart(values, strategies, seed, maxQueue),
   "live.advance": (engine, { seconds, maxQueue }) => engine.liveAdvance(seconds, maxQueue),
   "live.results": (engine) => engine.liveResults(),
-  "exp.run": (engine, { spec }, id) => runExperiment(engine, id, spec),
+  "exp.run": (engine, { spec }, id) => {
+    cancelRequested = false;
+    return runExperiment(engine, spec, {
+      onProgress: ({ done, total }) => postMessage({ id, type: "progress", done, total }),
+      isCancelled: () => cancelRequested, // set by an "exp.cancel" message between slices
+    });
+  },
   "exp.cancel": () => {
     cancelRequested = true;
     return true;

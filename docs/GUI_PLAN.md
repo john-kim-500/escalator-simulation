@@ -60,7 +60,10 @@ web/
   live-view.js        # animation loop, playback controls
   escalator-canvas.js # draws one strategy's escalator from a snapshot
   live-chart.js       # people-at-the-top-over-time chart (canvas)
-  experiments-view.js # compare/sweep forms, progress, tables, Chart.js charts
+  experiments-view.js # compare/sweep forms, progress, tables, downloads
+  experiment-charts.js # Chart.js loader, bar charts with error bars, sweep bands
+  experiment-util.js  # pure helpers: sweep ranges, time left, formatting
+  dom.js              # tiny element-building helper shared by the views
   manifest.json       # list of escalator_sim/*.py files for the worker to load
 tests/
   test_web_support.py # engine additions + manifest matches the package
@@ -238,8 +241,9 @@ These are estimates to check during milestone 2.
    Check the performance estimates.
 3. ✅ **Live view** *(checked in Firefox)*: the configuration panel built from `PARAM_INFO`, two
    escalators side by side, playback controls, live numbers and the live chart.
-4. **Experiments view:** compare and sweep with progress and cancel, tables,
-   charts, CSV/JSON download, and "Watch this scenario".
+4. ✅ **Experiments view** *(built and tested in Node and jsdom; not yet checked in a real browser)*:
+   compare and sweep with progress and cancel, tables, charts, CSV/JSON
+   download, and "Watch this scenario".
 5. **Polish:** presets, settings kept in the URL, phone-width layout, dark mode,
    keyboard controls, and a short "how to read this" help panel.
 6. *(Optional)* A pool of workers for faster sweeps, bundling Pyodide for

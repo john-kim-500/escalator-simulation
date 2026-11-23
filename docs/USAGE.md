@@ -247,7 +247,8 @@ python3 -m escalator_sim compare -n 20 --output json > compare.json
   `walked_share`, `arrived`, `finished`, `warmup_too_short`,
   `throughput_lane0`, `throughput_lane1`, … .
 - `sweep`: one row per parameter value and strategy, with `<metric>_mean` and
-  `<metric>_ci95` columns.
+  `<metric>_ci95` columns. In a sweep over `lanes`, the extra lane columns
+  are added at the end and left empty for the rows with fewer lanes.
 
 **JSON** contains everything, including the full settings used:
 
@@ -306,13 +307,17 @@ Then open **http://localhost:8000/web/**.
 - You need a web server; opening `web/index.html` directly as a file doesn't
   work, because browsers block the simulation worker on `file://` pages.
 - On the first visit the page downloads the Python runtime (about 12 MB) from
-  cdn.jsdelivr.net. After that it loads from the browser cache.
+  cdn.jsdelivr.net, and the chart library when you first run an experiment.
+  After that they load from the browser cache.
 - **In Docker:** the container must publish the port, e.g.
   `docker run -p 8000:8000 ...`. Otherwise the browser on your computer can't
   reach the server. `http.server` already listens on all network interfaces.
   If port 8000 is taken, use another number in both places.
 
-**Using it:**
+The **Live** and **Experiments** buttons at the top switch views. Both use the
+settings on the left. The animation pauses while Experiments is showing.
+
+**Live view:**
 
 | Area | What it does |
 |---|---|
@@ -324,12 +329,29 @@ Then open **http://localhost:8000/web/**.
 | Results | When the run finishes, the same metrics as `run`, measured after the warm-up, side by side |
 
 The live numbers include the warm-up and cover only one crowd. Use
-`compare` for conclusions over many crowds.
+Experiments (or `compare`) for conclusions over many crowds.
+
+**Experiments view** runs `compare` or `sweep` in the browser:
+
+| Area | What it does |
+|---|---|
+| Compare / Sweep | Compare averages every strategy over the same crowds. Sweep does that at each value of one setting |
+| Strategies, Replications, First seed | Like `--strategies`, `-n` and `--seed`. The defaults are the command line's: 10 replications for Compare and 5 for Sweep. The line below the form says how many runs that is |
+| Setting to vary (Sweep only) | Any parameter. Enter the values as a **Range** (from, to, step) or a **List** such as `0, 0.1, 0.25`. Up to 50 values. The swept values replace that setting from the panel on the left |
+| Run / Cancel | A progress bar shows the runs done and the estimated time left. Cancel stops after the current slice of runs |
+| Results | The command line's table, with mean ±95% margin of error. Compare adds the percentage difference and whether the throughput lead is bigger than the margins of error. Sweep shows the leader at each value, or `tie`, using the command line's rule |
+| Charts | Compare: throughput and average wait per strategy, with error bars. Sweep: throughput and average wait against the swept value, with a shaded band for the margin of error |
+| Download CSV / JSON | Exactly what `--output csv` / `--output json` prints for the same experiment, so files from either can be analysed the same way |
+| Watch this scenario | Opens the live view with that result's settings and its first seed. In a sweep, each row has its own **Watch** button |
+
+As a rough guide, one 10-minute run takes about 0.15 s in the browser, so the
+default compare (20 runs) takes a few seconds. Experiments run in a background
+worker, so the page stays responsive.
 
 ## Using the engine from Python
 
 The command line is a thin layer on top of the engine. Scripts, notebooks and the
-planned web interface can use the engine directly:
+web interface use the engine directly:
 
 ```python
 from escalator_sim import Simulation, SimConfig, compare, sweep
