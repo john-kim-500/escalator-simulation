@@ -24,6 +24,13 @@ your browser through Pyodide, and needs internet access on first load to
 download the Python runtime. In Docker, start the container with
 `-p 8000:8000`. See [docs/USAGE.md](docs/USAGE.md#web-interface) for details.
 
+**After updating the code**, the browser may keep using old copies of some
+files, because `http.server` doesn't tell it when to check for new ones. If
+the page says "The simulator could not start" with an `ImportError`, clear the
+site's data for that address (or open it in a private window) and reload.
+While working on the page, tick **Disable cache** in the browser's developer
+tools (Network tab).
+
 ## Command line
 
 ```bash
