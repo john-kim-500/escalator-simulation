@@ -38,7 +38,7 @@ For that trial and other studies, see [RESEARCH.md](RESEARCH.md).
 
 | Option | How the web version works | Pros | Cons |
 |---|---|---|---|
-| **A. Python engine + Pyodide** ✅ | Engine runs in the browser through WebAssembly; JS draws the interface | One engine. Python analysis tools for the experiments. No server | About 10 MB download and a few seconds to start. Small overhead on calls between JS and Python |
+| **A. Python engine + Pyodide** ✅ | Engine runs in the browser through WebAssembly; JS draws the interface | One engine. Python analysis tools for the experiments. No server | About 12 MB download and a few seconds to start. Small overhead on calls between JS and Python |
 | B. Python engine on a server | FastAPI or similar streams snapshots to the browser over WebSockets | Plain Python everywhere | Needs hosting and a running server. Network delay on every frame. Every viewer uses server CPU |
 | C. TypeScript engine | Runs natively in the browser; the command line runs on Node | Fastest and smallest in the browser. One language | Weaker tools for statistics and plotting |
 | D. Python batch runs + recorded replays | Python writes a JSON trace; a static page plays it back | Very simple | No live sliders. Can only watch runs recorded beforehand |
