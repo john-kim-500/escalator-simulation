@@ -3,7 +3,7 @@
 The goal is a browser interface where you can set every parameter, watch both
 strategies run side by side on the same crowd, and run `compare`/`sweep`
 experiments with charts. It follows the tech-stack decision in
-[PLAN.md](../PLAN.md#tech-stack): the existing Python engine runs **in the
+[PLAN.md](PLAN.md#tech-stack): the existing Python engine runs **in the
 browser through Pyodide**, and the page is static, so no server is needed.
 
 ## Goals

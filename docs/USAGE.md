@@ -1,7 +1,7 @@
 # Running the Escalator Simulator
 
 This guide covers installing, running and reading the results of the simulator.
-For the design and the reasons behind it, see [PLAN.md](../PLAN.md).
+For the design and the reasons behind it, see [PLAN.md](PLAN.md).
 
 - [Requirements](#requirements)
 - [Quick start](#quick-start)

@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Agent-based simulation testing whether an escalator moves more people when everyone stands on both sides (`stand-both`) than with stand-right/walk-left (`walk-left`). Design rationale is in `PLAN.md`; the browser GUI design and milestone status is in `docs/GUI_PLAN.md`; user-facing docs are in `docs/USAGE.md`.
+Agent-based simulation testing whether an escalator moves more people when everyone stands on both sides (`stand-both`) than with stand-right/walk-left (`walk-left`). Design rationale is in `docs/PLAN.md`; how the browser GUI and the engine fit together is in `docs/APP_DESIGN.md`; how the engine runs each step is in `docs/ENGINE_DESIGN.md`; the GUI milestone status is in `docs/GUI_PLAN.md`; user-facing docs are in `docs/USAGE.md`. All documentation except this file and `README.md` lives in `docs/`.
 
 ## Commands
 

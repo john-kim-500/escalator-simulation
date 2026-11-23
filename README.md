@@ -2,7 +2,7 @@
 
 An agent-based simulation that tests whether an escalator moves more people when
 everyone **stands on both sides** (`stand-both`) than with the usual **stand
-right, walk left** convention (`walk-left`). See [PLAN.md](PLAN.md) for the design
+right, walk left** convention (`walk-left`). See [docs/PLAN.md](docs/PLAN.md) for the design
 and the reasons behind it.
 
 Requires Python 3.10+ (run as `python3`) and only the standard library.
