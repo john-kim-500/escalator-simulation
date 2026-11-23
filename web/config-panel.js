@@ -39,7 +39,8 @@ export class ConfigPanel {
 
     this.derivedBox = el("dl", { class: "derived", "aria-label": "Calculated values" });
     this.messages = el("div", { class: "messages", "aria-live": "polite" });
-    const reset = el("button", { type: "button", class: "button secondary", text: "Reset to defaults" });
+    const reset = el("button",
+      { type: "button", class: "button secondary", text: "Reset to defaults" });
     reset.addEventListener("click", () => this.setValues(this.info.defaults));
     this.root.replaceChildren(
       el("h2", { class: "panel-title", text: "Settings" }),
@@ -61,7 +62,7 @@ export class ConfigPanel {
     const error = el("p", { class: "field-error", id: `${id}-error`, hidden: true });
     const badge = p.only_for
       ? el("span", { class: "badge", text: `${p.only_for.join(", ")} only`,
-          title: p.only_for.map((s) => strategies[s]).join(" ") })
+        title: p.only_for.map((s) => strategies[s]).join(" ") })
       : null;
     const label = el("label", { for: id },
       el("span", { class: "label-text", text: p.label }),
@@ -146,7 +147,8 @@ export class ConfigPanel {
         ["All lanes standing", `${formatNumber(d.stand_lane_capacity * lanes, 0)} /min`],
         ["Walking lane, at most", `${formatNumber(d.walk_lane_capacity, 0)} /min`],
       ];
-      this.derivedBox.replaceChildren(...items.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })]));
+      this.derivedBox.replaceChildren(
+        ...items.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })]));
     }
   }
 }

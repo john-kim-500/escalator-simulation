@@ -6,11 +6,15 @@ export const MAX_SWEEP_VALUES = 50;
 
 /** Values from..to (inclusive) in steps of `step`, without float noise. */
 export function rangeValues(from, to, step, maxCount = MAX_SWEEP_VALUES) {
-  if (![from, to, step].every(Number.isFinite)) return { values: [], error: "from, to and step must be numbers" };
+  if (![from, to, step].every(Number.isFinite)) {
+    return { values: [], error: "from, to and step must be numbers" };
+  }
   if (step <= 0) return { values: [], error: "step must be greater than 0" };
   if (to < from) return { values: [], error: "“to” must not be less than “from”" };
   const count = Math.floor((to - from) / step + 1e-9) + 1;
-  if (count > maxCount) return { values: [], error: `that is ${count} values; the limit is ${maxCount}` };
+  if (count > maxCount) {
+    return { values: [], error: `that is ${count} values; the limit is ${maxCount}` };
+  }
   const values = [];
   for (let i = 0; i < count; i++) values.push(roundToStep(from + i * step, step));
   return { values, error: null };
@@ -23,7 +27,9 @@ export function parseList(text, maxCount = MAX_SWEEP_VALUES) {
   const values = parts.map(Number);
   const bad = parts.find((p, i) => !Number.isFinite(values[i]));
   if (bad !== undefined) return { values: [], error: `“${bad}” is not a number` };
-  if (values.length > maxCount) return { values: [], error: `that is ${values.length} values; the limit is ${maxCount}` };
+  if (values.length > maxCount) {
+    return { values: [], error: `that is ${values.length} values; the limit is ${maxCount}` };
+  }
   return { values, error: null };
 }
 
@@ -32,7 +38,8 @@ export function defaultRange(param) {
   const span = param.max - param.min;
   let step = Math.max(param.step, niceStep(span, 5));
   if (param.step >= 1) step = Math.max(1, Math.round(step));
-  return { from: param.min, to: roundToStep(param.min + step * Math.floor(span / step + 1e-9), param.step), step };
+  const last = roundToStep(param.min + step * Math.floor(span / step + 1e-9), param.step);
+  return { from: param.min, to: last, step };
 }
 
 /** Seconds left, from the time taken so far. null until there is something to go on. */

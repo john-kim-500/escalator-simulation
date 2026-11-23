@@ -1,0 +1,2 @@
+# Tools for contributors only. The simulation itself needs nothing beyond Python.
+ruff==0.17.6

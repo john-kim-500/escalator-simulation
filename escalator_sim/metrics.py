@@ -10,13 +10,14 @@ Everything is measured after the warm-up period:
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .engine import Simulation
 
 
-def percentile(values: Sequence[float], q: float) -> Optional[float]:
+def percentile(values: Sequence[float], q: float) -> float | None:
     """Linear-interpolated percentile (q in [0, 100]); None for no data."""
     if not values:
         return None
@@ -26,11 +27,11 @@ def percentile(values: Sequence[float], q: float) -> Optional[float]:
     return data[lo] + (data[hi] - data[lo]) * (k - lo)
 
 
-def mean(values: Sequence[float]) -> Optional[float]:
+def mean(values: Sequence[float]) -> float | None:
     return sum(values) / len(values) if values else None
 
 
-def summarize(sim: "Simulation") -> dict[str, Any]:
+def summarize(sim: Simulation) -> dict[str, Any]:
     cfg = sim.config
     start, end = cfg.warmup, sim.time
     window = max(end - start, 1e-9)
@@ -78,7 +79,7 @@ _T95 = [12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228,
         2.080, 2.074, 2.069, 2.064, 2.060, 2.056, 2.052, 2.048, 2.045, 2.042]
 
 
-def mean_ci(values: Iterable[Optional[float]]) -> dict[str, Optional[float]]:
+def mean_ci(values: Iterable[float | None]) -> dict[str, float | None]:
     """Mean and 95% confidence half-width, ignoring missing values."""
     data = [v for v in values if v is not None]
     n = len(data)
@@ -98,7 +99,7 @@ SCALAR_METRICS = [
 ]
 
 
-def aggregate(results: Sequence[dict[str, Any]]) -> dict[str, dict[str, Optional[float]]]:
+def aggregate(results: Sequence[dict[str, Any]]) -> dict[str, dict[str, float | None]]:
     """Mean and 95% CI of each scalar metric across replications."""
     out = {key: mean_ci(r[key] for r in results) for key in SCALAR_METRICS}
     lanes = len(results[0]["throughput_by_lane"]) if results else 0

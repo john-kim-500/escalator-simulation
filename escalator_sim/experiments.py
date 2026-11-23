@@ -13,7 +13,8 @@ functions serve the command line (with a process pool) and the browser worker
 """
 from __future__ import annotations
 
-from typing import Any, Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 from .config import SimConfig
 from .engine import Simulation
@@ -30,7 +31,7 @@ def run_one(job: Job) -> dict[str, Any]:
     return Simulation(SimConfig.from_dict(config_dict), strategy, seed).run()
 
 
-def _serial_map(fn, jobs):
+def _serial_map(fn: Callable[[Job], dict], jobs: list[Job]) -> list[dict]:
     return [fn(job) for job in jobs]
 
 
@@ -64,7 +65,7 @@ def collect_compare(plan: dict[str, Any], runs: Sequence[dict[str, Any]]) -> dic
 
 
 def compare(config: SimConfig, strategies: Sequence[str], replications: int,
-            base_seed: int = 1, map_fn: Optional[MapFn] = None) -> dict[str, Any]:
+            base_seed: int = 1, map_fn: MapFn | None = None) -> dict[str, Any]:
     """Run every strategy with the same seeds (same crowds) and aggregate."""
     plan = plan_compare(config, strategies, replications, base_seed)
     return collect_compare(plan, (map_fn or _serial_map)(run_one, plan["jobs"]))
@@ -100,7 +101,7 @@ def collect_sweep(plan: dict[str, Any], runs: Sequence[dict[str, Any]]) -> dict[
 
 
 def sweep(config: SimConfig, param: str, values: Sequence[Any], strategies: Sequence[str],
-          replications: int, base_seed: int = 1, map_fn: Optional[MapFn] = None) -> dict[str, Any]:
+          replications: int, base_seed: int = 1, map_fn: MapFn | None = None) -> dict[str, Any]:
     """Compare strategies at each value of one parameter."""
     plan = plan_sweep(config, param, values, strategies, replications, base_seed)
     return collect_sweep(plan, (map_fn or _serial_map)(run_one, plan["jobs"]))

@@ -427,3 +427,12 @@ strategy behavior, reproducibility, the command line and the pieces the GUI
 uses. `npm test` runs the engine inside Pyodide under Node, checks that its
 results match native Python, and tests the web helper functions. It needs
 Node.js 22 or newer; `npm install` downloads Pyodide for the tests only.
+
+To check code style (line length, type hints and similar rules in `CLAUDE.md`):
+
+```bash
+pip install -r requirements-dev.txt
+npm run lint
+```
+
+GitHub runs the style checks and both sets of tests on every pull request.

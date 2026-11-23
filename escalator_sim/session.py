@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import math
 import time
-from typing import Any, Optional
+from typing import Any
 
 from . import __version__
 from .config import GROUPS, PARAM_INFO, PRESETS, SimConfig, check_values, convert_values
@@ -34,7 +34,7 @@ def _finite(x: Any) -> Any:
     return x
 
 
-def check_config(values: dict[str, Any], strategies: Optional[list[str]] = None) -> dict[str, Any]:
+def check_config(values: dict[str, Any], strategies: list[str] | None = None) -> dict[str, Any]:
     """Validate partial settings (missing ones take defaults).
 
     Returns {ok, errors: [{field, message}], warnings: [...], derived, config}.
@@ -65,7 +65,7 @@ class Session:
 
     def __init__(self) -> None:
         self.sims: list[Simulation] = []
-        self._plan: Optional[dict[str, Any]] = None
+        self._plan: dict[str, Any] | None = None
         self._runs: list[dict[str, Any]] = []
 
     # ------------------------------------------------------------- info

@@ -65,7 +65,8 @@ export class ExperimentsView {
   // ---------------------------------------------------------------- form
 
   render() {
-    const kindGroup = el("div", { class: "segmented", role: "group", "aria-label": "Experiment type" });
+    const kindGroup = el("div",
+      { class: "segmented", role: "group", "aria-label": "Experiment type" });
     for (const [kind, label] of [["compare", "Compare"], ["sweep", "Sweep"]]) {
       const b = el("button", { type: "button", text: label, "data-kind": kind });
       b.addEventListener("click", () => this.setKind(kind));
@@ -74,7 +75,8 @@ export class ExperimentsView {
     this.kindGroup = kindGroup;
     this.kindNote = el("p", { class: "card-note" });
 
-    this.strategyBoxes = el("fieldset", { class: "strategies" }, el("legend", { text: "Strategies" }));
+    this.strategyBoxes = el("fieldset", { class: "strategies" },
+      el("legend", { text: "Strategies" }));
     for (const [name, description] of Object.entries(this.info.strategies)) {
       const box = el("input", { type: "checkbox", value: name, checked: true });
       box.addEventListener("change", () => this.updateSummary());
@@ -95,7 +97,8 @@ export class ExperimentsView {
     this.param.value = "walk_fraction";
     this.param.addEventListener("change", () => { this.resetRange(); this.updateSummary(); });
 
-    const modeGroup = el("div", { class: "segmented", role: "group", "aria-label": "How to enter values" });
+    const modeGroup = el("div",
+      { class: "segmented", role: "group", "aria-label": "How to enter values" });
     for (const [mode, label] of [["range", "Range"], ["list", "List"]]) {
       const b = el("button", { type: "button", text: label, "data-mode": mode });
       b.addEventListener("click", () => this.setValueMode(mode));
@@ -120,17 +123,21 @@ export class ExperimentsView {
 
     this.summary = el("p", { class: "card-note exp-summary" });
     this.messages = el("div", { class: "messages", "aria-live": "polite" }); // form problems
-    this.runError = el("p", { class: "message error", role: "alert", hidden: true }); // last run failed
+    // Shows why the last run failed.
+    this.runError = el("p", { class: "message error", role: "alert", hidden: true });
 
     this.runButton = el("button", { type: "button", class: "button primary", text: "Run" });
     this.runButton.addEventListener("click", () => this.run());
-    this.cancelButton = el("button", { type: "button", class: "button", text: "Cancel", hidden: true });
+    this.cancelButton = el("button",
+      { type: "button", class: "button", text: "Cancel", hidden: true });
     this.cancelButton.addEventListener("click", () => this.cancel());
-    this.progress = el("progress", { max: 1, value: 0, "aria-label": "Experiment progress", hidden: true });
+    this.progress = el("progress",
+      { max: 1, value: 0, "aria-label": "Experiment progress", hidden: true });
     this.progressText = el("span", { class: "progress-text", role: "status" });
 
     const form = el("section", { class: "card exp-form", "aria-labelledby": "exp-title" },
-      el("div", { class: "control-row" }, el("h2", { class: "card-title", id: "exp-title", text: "Experiment" }), kindGroup),
+      el("div", { class: "control-row" },
+        el("h2", { class: "card-title", id: "exp-title", text: "Experiment" }), kindGroup),
       this.kindNote,
       el("div", { class: "control-row" }, this.strategyBoxes),
       el("div", { class: "control-row" },
@@ -139,7 +146,8 @@ export class ExperimentsView {
       this.summary,
       this.messages,
       this.runError,
-      el("div", { class: "control-row" }, this.runButton, this.cancelButton, this.progress, this.progressText));
+      el("div", { class: "control-row" },
+        this.runButton, this.cancelButton, this.progress, this.progressText));
 
     this.results = el("section", { class: "card results", hidden: true, "aria-live": "polite" });
     this.root.replaceChildren(form, this.results);
@@ -160,7 +168,8 @@ export class ExperimentsView {
 
   setValueMode(mode) {
     // Switching to a list starts it from the current range.
-    const fromRange = mode === "list" && this.valueMode === "range" ? this.sweepValues().values : null;
+    const fromRange = mode === "list" && this.valueMode === "range"
+      ? this.sweepValues().values : null;
     this.valueMode = mode;
     this.modeGroup.querySelectorAll("button").forEach((b) =>
       b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
@@ -199,14 +208,17 @@ export class ExperimentsView {
   buildSpec() {
     const settings = this.getSettings();
     if (!settings?.ok) return { error: "Fix the settings on the left first." };
-    const strategies = [...this.strategyBoxes.querySelectorAll("input:checked")].map((b) => b.value);
+    const strategies = [...this.strategyBoxes.querySelectorAll("input:checked")]
+      .map((b) => b.value);
     if (!strategies.length) return { error: "Choose at least one strategy." };
     const replications = Number(this.reps.value);
     if (!Number.isInteger(replications) || replications < 1 || replications > MAX_REPLICATIONS) {
       return { error: `Replications must be a whole number from 1 to ${MAX_REPLICATIONS}.` };
     }
     const seed = Number(this.seed.value);
-    if (!Number.isInteger(seed) || seed < 0) return { error: "The first seed must be a whole number, 0 or more." };
+    if (!Number.isInteger(seed) || seed < 0) {
+      return { error: "The first seed must be a whole number, 0 or more." };
+    }
     const spec = { kind: this.kind, config: settings.config, strategies, replications, seed };
     if (this.kind === "sweep") {
       const { values, error } = this.sweepValues();
@@ -224,7 +236,8 @@ export class ExperimentsView {
       this.preview.textContent = valueError
         ? "" : `${values.length} value${values.length === 1 ? "" : "s"}: ${values.join(", ")}`;
     }
-    this.messages.replaceChildren(...(error ? [el("p", { class: "message error", text: error })] : []));
+    this.messages.replaceChildren(
+      ...(error ? [el("p", { class: "message error", text: error })] : []));
     this.runButton.disabled = Boolean(error) || this.running;
     if (!spec) {
       this.summary.textContent = "";
@@ -232,7 +245,9 @@ export class ExperimentsView {
     }
     const points = spec.kind === "sweep" ? spec.values.length : 1;
     const runs = points * spec.strategies.length * spec.replications;
-    const seeds = spec.replications === 1 ? `seed ${spec.seed}` : `seeds ${spec.seed}–${spec.seed + spec.replications - 1}`;
+    const seeds = spec.replications === 1
+      ? `seed ${spec.seed}`
+      : `seeds ${spec.seed}–${spec.seed + spec.replications - 1}`;
     let text = `${runs} run${runs === 1 ? "" : "s"}: `
       + (spec.kind === "sweep" ? `${points} value${points === 1 ? "" : "s"} × ` : "")
       + `${spec.strategies.length} strateg${spec.strategies.length === 1 ? "y" : "ies"} × `
@@ -268,7 +283,8 @@ export class ExperimentsView {
         this.progressText.textContent = "Canceled.";
       } else {
         const seconds = (performance.now() - started) / 1000;
-        this.progressText.textContent = `Finished in ${seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)} s.`;
+        const shown = seconds < 10 ? seconds.toFixed(1) : Math.round(seconds);
+        this.progressText.textContent = `Finished in ${shown} s.`;
         this.last = { spec, result: out.result };
         this.showResults();
       }
@@ -296,16 +312,21 @@ export class ExperimentsView {
     const { spec, result } = this.last;
     const { data } = result;
     const config = data.config;
-    const seeds = data.seeds.length === 1 ? `seed ${data.seeds[0]}` : `seeds ${data.seeds[0]}–${data.seeds.at(-1)}`;
+    const seeds = data.seeds.length === 1
+      ? `seed ${data.seeds[0]}`
+      : `seeds ${data.seeds[0]}–${data.seeds.at(-1)}`;
     const measured = formatClock(config.duration - config.warmup);
 
     const downloads = el("div", { class: "control-row downloads" },
       this.downloadButton("Download CSV", result.csv, downloadName(data, "csv"), "text/csv"),
-      this.downloadButton("Download JSON", result.json, downloadName(data, "json"), "application/json"));
+      this.downloadButton("Download JSON", result.json, downloadName(data, "json"),
+        "application/json"));
     const note = el("p", { class: "card-note",
-      text: `${data.seeds.length} replication${data.seeds.length === 1 ? "" : "s"} per strategy (${seeds}). `
-        + `Each run is measured over the ${measured} after a ${formatClock(config.warmup)} warm-up. `
-        + "Values are the mean ± the 95% margin of error. The files are the same as the command line's --output csv/json." });
+      text: `${data.seeds.length} replication${data.seeds.length === 1 ? "" : "s"} `
+        + `per strategy (${seeds}). `
+        + `Each run is measured over the ${measured} after a ${formatClock(config.warmup)} `
+        + "warm-up. Values are the mean ± the 95% margin of error. "
+        + "The files are the same as the command line's --output csv/json." });
 
     const warnings = [];
     const runs = data.points
@@ -313,7 +334,8 @@ export class ExperimentsView {
       : Object.values(data.strategies).flatMap((s) => s.runs);
     if (runs.some((r) => r.warmup_too_short)) {
       warnings.push(el("p", { class: "message warning",
-        text: "The warm-up is shorter than one ride, so throughput is underestimated. Raise the warm-up." }));
+        text: "The warm-up is shorter than one ride, so throughput is underestimated. "
+          + "Raise the warm-up." }));
     }
 
     this.chartBox = el("div", { class: "exp-charts" });
@@ -333,24 +355,29 @@ export class ExperimentsView {
       ...METRICS.map(([, h]) => el("th", { scope: "col", text: h })));
     const rows = names.map((name, i) => el("tr", {},
       el("th", { scope: "row" }, this.swatch(i), name),
-      ...METRICS.map(([key, , digits, pct]) => el("td", { text: formatMeanCi(summaries[i][key], digits, pct) }))));
+      ...METRICS.map(([key, , digits, pct]) =>
+        el("td", { text: formatMeanCi(summaries[i][key], digits, pct) }))));
     const lines = [];
     if (names.length >= 2) {
       const base = names.includes("walk-left") ? "walk-left" : names[0];
       for (const name of names.filter((n) => n !== base)) {
         const a = data.strategies[name].summary, b = data.strategies[base].summary;
-        lines.push(`${name} vs ${base}: throughput ${formatChange(a.throughput_per_min.mean, b.throughput_per_min.mean)}, `
-          + `average wait ${formatChange(a.wait_mean.mean, b.wait_mean.mean)}.`);
+        const more = formatChange(a.throughput_per_min.mean, b.throughput_per_min.mean);
+        const wait = formatChange(a.wait_mean.mean, b.wait_mean.mean);
+        lines.push(`${name} vs ${base}: throughput ${more}, average wait ${wait}.`);
       }
       lines.push(winners[0] === "tie"
-        ? "Most throughput: a tie. The difference is within the margins of error; more replications may separate them."
+        ? "Most throughput: a tie. The difference is within the margins of error; "
+          + "more replications may separate them."
         : `Most throughput: ${winners[0]}, by more than the margins of error.`);
     }
     const watch = el("button", { type: "button", class: "button", text: "Watch this scenario",
       title: `Open the live view with these settings and seed ${data.seeds[0]}` });
-    watch.addEventListener("click", () => this.onWatch({ config: data.config, seed: data.seeds[0], strategies: names }));
+    watch.addEventListener("click",
+      () => this.onWatch({ config: data.config, seed: data.seeds[0], strategies: names }));
     return [
-      el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))),
+      el("div", { class: "table-wrap" },
+        el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))),
       el("div", { class: "verdict" }, ...lines.map((t) => el("p", { text: t }))),
       el("div", { class: "control-row" }, watch),
     ];
@@ -367,24 +394,31 @@ export class ExperimentsView {
       const watch = el("button", { type: "button", class: "button small", text: "Watch",
         "aria-label": `Watch ${data.param} = ${point.value} in the live view` });
       watch.addEventListener("click", () => this.onWatch({
-        config: { ...data.config, [data.param]: point.value }, seed: data.seeds[0], strategies: names }));
+        config: { ...data.config, [data.param]: point.value },
+        seed: data.seeds[0],
+        strategies: names,
+      }));
+      const summary = (n) => point.strategies[n].summary;
       return el("tr", {},
         el("th", { scope: "row", text: String(point.value) }),
-        ...names.map((n) => el("td", { text: formatMeanCi(point.strategies[n].summary.throughput_per_min) })),
-        ...names.map((n) => el("td", { text: formatMeanCi(point.strategies[n].summary.wait_mean) })),
+        ...names.map((n) => el("td", { text: formatMeanCi(summary(n).throughput_per_min) })),
+        ...names.map((n) => el("td", { text: formatMeanCi(summary(n).wait_mean) })),
         el("td", { class: winners[i] === "tie" ? "tie" : "winner", text: winners[i] }),
         el("td", {}, watch));
     });
     return [
-      el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))),
+      el("div", { class: "table-wrap" },
+        el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))),
       el("p", { class: "card-note",
-        text: "“tie” means the lead is within the margins of error (the command line's rule)." }),
+        text: "“tie” means the lead is within the margins of error "
+          + "(the command line's rule)." }),
     ];
   }
 
   swatch(i) {
-    return el("span", { class: "swatch", style: `background: var(${SERIES_VARS[i % SERIES_VARS.length]})`,
-      "aria-hidden": "true" });
+    const color = SERIES_VARS[i % SERIES_VARS.length];
+    return el("span",
+      { class: "swatch", style: `background: var(${color})`, "aria-hidden": "true" });
   }
 
   downloadButton(label, text, filename, type) {
@@ -410,7 +444,8 @@ export class ExperimentsView {
     try {
       Chart = await loadChartJs();
     } catch (err) {
-      box.replaceChildren(el("p", { class: "message warning", text: `Charts unavailable: ${err.message}. The table above has every number.` }));
+      box.replaceChildren(el("p", { class: "message warning",
+        text: `Charts unavailable: ${err.message}. The table above has every number.` }));
       return;
     }
     if (box !== this.chartBox) return; // newer results arrived meanwhile
@@ -423,7 +458,10 @@ export class ExperimentsView {
       return { canvas, figure: el("figure", { class: "exp-chart" },
         el("figcaption", { text: title }), el("div", { class: "chart-frame" }, canvas)) };
     };
-    const metrics = [["throughput_per_min", "Throughput (people/min)"], ["wait_mean", "Average wait (s)"]];
+    const metrics = [
+      ["throughput_per_min", "Throughput (people/min)"],
+      ["wait_mean", "Average wait (s)"],
+    ];
     const figures = metrics.map(([, title]) => make(title));
     box.replaceChildren(...figures.map((f) => f.figure));
 

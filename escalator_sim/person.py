@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from .config import SimConfig
 
@@ -18,8 +18,8 @@ class Person:
     kind: str = ""                  # stander/walker/defector/blocker, set by the strategy
     pos: float = 0.0                # distance from the bottom along the incline (m)
     speed: float = 0.0              # ground speed during the last step (m/s)
-    board_time: Optional[float] = None
-    exit_time: Optional[float] = None
+    board_time: float | None = None
+    exit_time: float | None = None
 
     def gap(self, config: SimConfig) -> float:
         """Minimum distance this person keeps to the person ahead."""

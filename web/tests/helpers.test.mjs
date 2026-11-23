@@ -36,7 +36,8 @@ test("roundToStep removes float noise from sliders", () => {
 });
 
 test("layout keeps the escalator and queue inside the canvas", () => {
-  for (const [width, height, lanes, length] of [[300, 420, 2, 30], [160, 380, 2, 120], [600, 560, 4, 4]]) {
+  const cases = [[300, 420, 2, 30], [160, 380, 2, 120], [600, 560, 4, 4]];
+  for (const [width, height, lanes, length] of cases) {
     const L = computeLayout({ width, height, lanes, length });
     assert.ok(L.escTop > 0 && L.escTop < L.escBottom, "escalator has height");
     assert.ok(L.queueTop + L.queueH < height, "queue fits");
@@ -79,7 +80,11 @@ test("default sweep ranges", () => {
   assert.deepEqual(defaultRange({ min: 0, max: 1, step: 0.05 }), { from: 0, to: 1, step: 0.2 });
   assert.deepEqual(defaultRange({ min: 1, max: 4, step: 1 }), { from: 1, to: 4, step: 1 });
   assert.deepEqual(defaultRange({ min: 0, max: 300, step: 5 }), { from: 0, to: 300, step: 100 });
-  for (const r of [defaultRange({ min: 0.3, max: 2, step: 0.05 }), defaultRange({ min: 60, max: 3600, step: 30 })]) {
+  const ranges = [
+    defaultRange({ min: 0.3, max: 2, step: 0.05 }),
+    defaultRange({ min: 60, max: 3600, step: 30 }),
+  ];
+  for (const r of ranges) {
     assert.ok(rangeValues(r.from, r.to, r.step).values.length >= 2);
   }
 });
@@ -97,7 +102,8 @@ test("time left and result formatting", () => {
   assert.equal(formatMeanCi({ mean: null }), "–");
   assert.deepEqual(ciBounds({ mean: 10, ci95: 2 }), [8, 12]);
   assert.deepEqual(ciBounds({ mean: 10, ci95: null }), [10, 10]);
-  assert.equal(downloadName({ seeds: [3], param: "lanes", points: [] }, "csv"), "sweep-lanes-seed3.csv");
+  assert.equal(downloadName({ seeds: [3], param: "lanes", points: [] }, "csv"),
+    "sweep-lanes-seed3.csv");
   assert.equal(downloadName({ seeds: [1], strategies: {} }, "json"), "compare-seed1.json");
 });
 

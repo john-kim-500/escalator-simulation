@@ -49,7 +49,8 @@ export class LiveView {
   // ---------------------------------------------------------------- layout
 
   render() {
-    const playButton = el("button", { type: "button", class: "button primary", "aria-keyshortcuts": "Space" });
+    const playButton = el("button",
+      { type: "button", class: "button primary", "aria-keyshortcuts": "Space" });
     playButton.addEventListener("click", () => this.togglePlay());
     const stepButton = el("button", { type: "button", class: "button", text: "Step +1 s",
       title: "Advance one simulated second" });
@@ -59,15 +60,19 @@ export class LiveView {
 
     const speedGroup = el("div", { class: "segmented", role: "group", "aria-label": "Speed" });
     for (const s of SPEEDS) {
-      const b = el("button", { type: "button", text: `${s}×`, "aria-pressed": String(s === this.speed) });
+      const b = el("button",
+        { type: "button", text: `${s}×`, "aria-pressed": String(s === this.speed) });
       b.addEventListener("click", () => {
         this.speed = s;
-        speedGroup.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        for (const x of speedGroup.querySelectorAll("button")) {
+          x.setAttribute("aria-pressed", String(x === b));
+        }
       });
       speedGroup.append(b);
     }
 
-    const seedInput = el("input", { type: "number", id: "seed", min: 0, step: 1, value: this.seed });
+    const seedInput = el("input",
+      { type: "number", id: "seed", min: 0, step: 1, value: this.seed });
     seedInput.addEventListener("change", () => {
       const v = Math.trunc(Number(seedInput.value));
       if (Number.isFinite(v)) {
@@ -83,9 +88,11 @@ export class LiveView {
       this.restart();
     });
 
-    const strategyBoxes = el("fieldset", { class: "strategies" }, el("legend", { text: "Strategies" }));
+    const strategyBoxes = el("fieldset", { class: "strategies" },
+      el("legend", { text: "Strategies" }));
     for (const [name, description] of Object.entries(this.info.strategies)) {
-      const box = el("input", { type: "checkbox", value: name, checked: this.strategies.includes(name) });
+      const box = el("input",
+        { type: "checkbox", value: name, checked: this.strategies.includes(name) });
       box.addEventListener("change", () => {
         const chosen = [...strategyBoxes.querySelectorAll("input:checked")].map((b) => b.value);
         if (!chosen.length) {
@@ -126,7 +133,8 @@ export class LiveView {
       el("section", { class: "card" },
         el("h2", { class: "card-title", text: "People at the top" }),
         el("p", { class: "card-note",
-          text: "When the lines separate, one strategy is carrying more people. The dashed line is everyone who has arrived." }),
+          text: "When the lines separate, one strategy is carrying more people. "
+            + "The dashed line is everyone who has arrived." }),
         this.chartLegend, this.chartCanvas),
       this.results);
     this.renderLegend();
@@ -151,7 +159,8 @@ export class LiveView {
         "aria-label": `${name} escalator, seen from above` });
       const stats = el("dl", { class: "stats" });
       const card = el("article", { class: "sim" },
-        el("h3", {}, el("span", { class: "swatch", style: `background: var(${SERIES_VARS[i]})` }), name),
+        el("h3", {},
+          el("span", { class: "swatch", style: `background: var(${SERIES_VARS[i]})` }), name),
         el("p", { class: "sim-desc", text: this.info.strategies[name] }),
         canvas, stats);
       return { name, card, stats, drawing: new EscalatorCanvas(canvas) };
@@ -178,7 +187,9 @@ export class LiveView {
     const known = (strategies ?? []).filter((s) => s in this.info.strategies);
     if (known.length) {
       this.strategies = known;
-      this.strategyBoxes.querySelectorAll("input").forEach((b) => (b.checked = known.includes(b.value)));
+      for (const b of this.strategyBoxes.querySelectorAll("input")) {
+        b.checked = known.includes(b.value);
+      }
     }
   }
 
@@ -205,7 +216,9 @@ export class LiveView {
       this.buildSimCards();
       this.setState(state);
     } catch (err) {
-      if (generation === this.generation) this.status.textContent = `Could not start: ${err.message}`;
+      if (generation === this.generation) {
+        this.status.textContent = `Could not start: ${err.message}`;
+      }
     } finally {
       if (generation === this.generation) this.busy = false;
     }
@@ -235,7 +248,8 @@ export class LiveView {
 
   tick(now) {
     requestAnimationFrame((t) => this.tick(t));
-    const elapsed = this.lastFrame == null ? 0 : Math.min((now - this.lastFrame) / 1000, MAX_FRAME_SECONDS);
+    const elapsed = this.lastFrame == null
+      ? 0 : Math.min((now - this.lastFrame) / 1000, MAX_FRAME_SECONDS);
     this.lastFrame = now;
     if (!this.active || !this.playing || !this.state || this.state.done) return;
     // Owed simulated time; capped so a slow device doesn't build a backlog.
@@ -302,11 +316,15 @@ export class LiveView {
         ["Average wait so far", `${formatNumber(st.wait_mean)} s`],
         ["Walked", formatPercent(st.walked_share)],
       ];
-      card.stats.replaceChildren(...rows.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })]));
+      card.stats.replaceChildren(
+        ...rows.flatMap(([k, v]) => [el("dt", { text: k }), el("dd", { text: v })]));
     });
 
     const series = [
-      { label: "Arrived", color: cssVar("--series-arrived"), dashed: true, points: this.history.arrived },
+      {
+        label: "Arrived", color: cssVar("--series-arrived"), dashed: true,
+        points: this.history.arrived,
+      },
       ...this.strategies.map((name, i) => ({
         label: name, color: cssVar(SERIES_VARS[i]), points: this.history.sims[i] })),
     ];
@@ -341,7 +359,9 @@ export class LiveView {
     const compareTwo = results.length === 2;
     const head = el("tr", {}, el("th", { scope: "col", text: "" }),
       ...results.map((r) => el("th", { scope: "col", text: r.strategy })),
-      compareTwo ? el("th", { scope: "col", text: `${results[0].strategy} vs ${results[1].strategy}` }) : null);
+      compareTwo
+        ? el("th", { scope: "col", text: `${results[0].strategy} vs ${results[1].strategy}` })
+        : null);
     const rows = metrics.map(([label, key, digits, unit]) => el("tr", {},
       el("th", { scope: "row", text: label }),
       ...results.map((r) => el("td", { text: `${formatNumber(r[key], digits)}${unit}` })),
@@ -352,7 +372,8 @@ export class LiveView {
       el("p", { class: "card-note",
         text: `Measured over the ${measured} after the warm-up, for seed ${results[0].seed}. `
           + "One run is noisy: use Experiments to average over many crowds." }),
-      el("div", { class: "table-wrap" }, el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))));
+      el("div", { class: "table-wrap" },
+        el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))));
     this.results.hidden = false;
   }
 }

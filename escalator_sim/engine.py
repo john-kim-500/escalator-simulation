@@ -19,7 +19,7 @@ from __future__ import annotations
 import math
 import random
 from collections import deque
-from typing import Any, Optional
+from typing import Any
 
 from .config import SimConfig
 from .metrics import summarize
@@ -32,9 +32,9 @@ _EPS = 1e-9
 class Simulation:
     def __init__(
         self,
-        config: Optional[SimConfig] = None,
+        config: SimConfig | None = None,
         strategy: str = "walk-left",
-        seed: Optional[int] = 0,
+        seed: int | None = 0,
     ) -> None:
         self.config = config or SimConfig()
         self.strategy = get_strategy(strategy, self.config)
@@ -88,20 +88,20 @@ class Simulation:
         self.time = t1
         self._sample_queues()
 
-    def run(self, until: Optional[float] = None) -> dict[str, Any]:
+    def run(self, until: float | None = None) -> dict[str, Any]:
         """Step until `until` seconds (default: config.duration); return results()."""
         target = self.config.duration if until is None else until
         while self.time < target - _EPS:
             self.step()
         return self.results()
 
-    def snapshot(self, max_queue: Optional[int] = None) -> dict[str, Any]:
+    def snapshot(self, max_queue: int | None = None) -> dict[str, Any]:
         """Current state as plain data (for visual front ends).
 
         `max_queue` limits how many queueing people are listed per lane (the
         front of the queue); `queue_length` always gives the full count.
         """
-        def queue_people(q):
+        def queue_people(q: deque[Person]) -> list[dict[str, Any]]:
             shown = q if max_queue is None else list(q)[:max_queue]
             return [p.to_dict() for p in shown]
 
