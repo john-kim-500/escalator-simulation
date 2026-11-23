@@ -269,8 +269,8 @@ Questions the studies raise that this simulation could help answer:
    could find the crossover.
 2. **How much time do walkers save, and what does it cost everyone else?**
    Yamamoto et al. suggest the answers point in opposite directions. No study
-   measures it, though Davis & Dutta and Holborn show walkers care. This is the
-   `feature/time-saved` work.
+   measures it, though Davis & Dutta and Holborn show walkers care. The
+   simulation's answer at Holborn's height is in [FINDINGS.md](FINDINGS.md).
 3. **How much rule-breaking can a stand-on-both-sides rule survive?** Japan's
    experience suggests people drift back to walking.
 4. **Does the simulation agree with Filippidis et al.?** It would need their

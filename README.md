@@ -11,6 +11,9 @@ Requires Python 3.10+ (run as `python3`) and only the standard library.
 parameter, how to read the results, JSON/CSV output, recipes for testing the
 theory, and troubleshooting.
 
+**Results so far: [docs/FINDINGS.md](docs/FINDINGS.md)**: how much time walking
+saves at a tall, busy escalator (Holborn), and what it costs everyone else.
+
 ## Web interface
 
 ```bash
@@ -63,8 +66,12 @@ print(sim.results())
 ## Reading the results
 
 - **Thru/min:** people reaching the top per minute after the warm-up.
-- **Wait:** time spent queueing at the bottom. People still queueing at the end
-  count with the time waited so far, so under overload the waits are a lower bound.
+- **Wait:** time spent queueing at the bottom. By default the run finishes the
+  line, so everyone measured has a complete wait. With `--drain 0`, people still
+  queueing at the end count with the time waited so far, a lower bound.
+- **Walkers' / Others' trip:** time from joining the queue to reaching the top,
+  for people who want to walk and for everyone else. `compare` also prints how
+  much time walk-left saves each group.
 - **Queue end:** people still waiting when the run stops. If this is large, the
   escalator is overloaded and the queue keeps growing.
 - The warm-up must be longer than one ride (`length / belt_speed`); otherwise
