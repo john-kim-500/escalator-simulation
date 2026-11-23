@@ -1,4 +1,4 @@
-"""Command line: python -m escalator_sim {run,compare,sweep,strategies} ...
+"""Command line: python3 -m escalator_sim {run,compare,sweep,strategies} ...
 
 Every SimConfig parameter is available as a flag (e.g. --arrival-rate 90).
 """
@@ -52,7 +52,7 @@ def _strategy_list(text: str) -> list[str]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m escalator_sim",
+        prog="python3 -m escalator_sim",
         description="Agent-based escalator simulator: stand on both sides vs walk on one.",
     )
     sub = parser.add_subparsers(dest="command", required=True)

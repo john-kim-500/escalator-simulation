@@ -131,7 +131,7 @@ escalator_sim/
   engine.py      # Simulation: step(), run(), snapshot(), results()
   metrics.py     # summary statistics
   experiments.py # compare / sweep across seeds (plain data; reusable from the web UI)
-  cli.py         # argparse entry point (python -m escalator_sim)
+  cli.py         # argparse entry point (python3 -m escalator_sim)
 tests/           # unittest (pytest is not installed)
 ```
 
@@ -147,9 +147,9 @@ sim.results()          # summary metrics
 ## Command line
 
 ```
-python -m escalator_sim run      --strategy walk-left --arrival-rate 120 --walk-fraction 0.25
-python -m escalator_sim compare  --replications 20          # all strategies, same seeds
-python -m escalator_sim sweep    --param walk_fraction --values 0,0.1,0.2,0.4 --replications 10
+python3 -m escalator_sim run      --strategy walk-left --arrival-rate 120 --walk-fraction 0.25
+python3 -m escalator_sim compare  --replications 20          # all strategies, same seeds
+python3 -m escalator_sim sweep    --param walk_fraction --values 0,0.1,0.2,0.4 --replications 10
 ```
 Results print as text tables, with optional `--json` / `--csv` export.
 

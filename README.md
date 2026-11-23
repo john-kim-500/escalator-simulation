@@ -5,7 +5,7 @@ everyone **stands on both sides** (`stand-both`) than with the usual **stand
 right, walk left** convention (`walk-left`). See [PLAN.md](PLAN.md) for the design
 and the reasons behind it.
 
-Requires Python 3.10+ and only the standard library.
+Requires Python 3.10+ (run as `python3`) and only the standard library.
 
 **Full guide: [docs/USAGE.md](docs/USAGE.md)**, covering every command and
 parameter, how to read the results, JSON/CSV output, recipes for testing the
@@ -14,11 +14,11 @@ theory, and troubleshooting.
 ## Usage
 
 ```bash
-python -m escalator_sim strategies                       # list strategies
-python -m escalator_sim run --strategy stand-both        # one run
-python -m escalator_sim compare -n 20                    # both strategies, same 20 crowds
-python -m escalator_sim sweep --param walk_fraction --values 0,0.1,0.25,0.5 -n 10 -j 0
-python -m escalator_sim compare --help                   # every parameter with its default
+python3 -m escalator_sim strategies                       # list strategies
+python3 -m escalator_sim run --strategy stand-both        # one run
+python3 -m escalator_sim compare -n 20                    # both strategies, same 20 crowds
+python3 -m escalator_sim sweep --param walk_fraction --values 0,0.1,0.25,0.5 -n 10 -j 0
+python3 -m escalator_sim compare --help                   # every parameter with its default
 ```
 
 - Every parameter in `escalator_sim/config.py` is a flag, e.g. `--arrival-rate 90 --rise 24`.
@@ -53,5 +53,5 @@ print(sim.results())
 ## Tests
 
 ```bash
-python -m unittest discover -s tests
+python3 -m unittest discover -s tests
 ```
