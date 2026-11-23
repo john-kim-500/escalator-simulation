@@ -63,7 +63,7 @@ That one decision shapes the rest of the design:
 | CLI | `cli.py`, `__main__.py` | Argument parsing, terminal tables, process pool, writing files | Simulation logic |
 | Worker | `sim-worker.js`, `engine-core.js` | Loading Pyodide, the message protocol, running experiments in slices | Drawing, DOM |
 | Main thread | `app.js`, `*-view.js`, `config-panel.js`, canvases, charts | Drawing and user input | Simulating |
-| Pure helpers | `format.js`, `experiment-util.js`, layout functions in `escalator-canvas.js` | Formatting, sweep ranges, layout maths | Touching the DOM or the worker (so Node can test them) |
+| Pure helpers | `format.js`, `experiment-util.js`, layout functions in `escalator-canvas.js` | Formatting, sweep ranges, layout math | Touching the DOM or the worker (so Node can test them) |
 
 ### The engine is driven from outside
 
@@ -162,7 +162,7 @@ ConfigPanel (debounced edit)
 
 A sequence number throws away replies to older edits, so fast slider drags
 can't apply stale settings. The live view starts from `result.config`, which is
-the engine's normalised copy, not the raw form values. The experiments view
+the engine's normalized copy, not the raw form values. The experiments view
 reads the same last check result through `getSettings()`, so both views always
 use the settings shown in the panel.
 
@@ -226,7 +226,7 @@ ExperimentsView.run → request("exp.run", {spec}, onProgress)
     expStart(spec)            → validates, plans → {done: 0, total}
     loop:
       await setTimeout(0)     ← lets an "exp.cancel" message be handled
-      if cancelled: expCancel() → {cancelled: true}
+      if canceled: expCancel() → {canceled: true}
       expStep(0.2)            → runs jobs for about 0.2 s → {done, total} → progress message
     expResult()               → {data, winners, csv, json}
 ```
@@ -273,10 +273,10 @@ Nothing is saved between page loads.
 
 - **Arrivals** (`"arrivals-{seed}"`): arrival times, who wants to walk, and
   walking speeds. Always drawn in the same order.
-- **Behaviour** (`"behaviour-{seed}"`): strategy decisions such as defecting
+- **Behavior** (`"behaviour-{seed}"`): strategy decisions such as defecting
   and blocking.
 
-Strategies differ only in how they use the behaviour stream. So with the same
+Strategies differ only in how they use the behavior stream. So with the same
 seed, every strategy faces **the same crowd**. That's what makes the
 side-by-side animation and the compared experiments a fair like-for-like test.
 Experiments use seeds `seed, seed+1, …` for every strategy.
@@ -308,7 +308,7 @@ These tests guard the boundaries described above:
 |---|---|---|
 | New parameter | `SimConfig` field, `PARAM_INFO` entry, validation | `info` → config panel, sweep list, CLI flags |
 | New strategy | `Strategy` subclass with `@register` in `strategies.py` | `info.strategies` → checkboxes in both views, CLI choices |
-| New per-person label | `KINDS` plus the strategy's `kind()`, then a `--kind-*` colour and a shape in `escalator-canvas.js` | `info.kinds` → legend |
+| New per-person label | `KINDS` plus the strategy's `kind()`, then a `--kind-*` color and a shape in `escalator-canvas.js` | `info.kinds` → legend |
 | New result metric | `metrics.summarize` / `aggregate`; columns in `report.py` | CSV/JSON automatically; GUI tables list their metrics explicitly |
 | New engine module | Add the `.py` file **and** add it to `web/manifest.json` | Pyodide file system on load |
 | New worker request | A `Session` method, a wrapper in `engine-core.js`, a handler in `sim-worker.js` | `client.request(type)` |

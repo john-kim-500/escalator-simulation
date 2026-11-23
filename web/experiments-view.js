@@ -265,7 +265,7 @@ export class ExperimentsView {
         this.progressText.textContent = `${done} of ${total} runs · ${formatEta(eta)}`;
       });
       if (out.cancelled) {
-        this.progressText.textContent = "Cancelled.";
+        this.progressText.textContent = "Canceled.";
       } else {
         const seconds = (performance.now() - started) / 1000;
         this.progressText.textContent = `Finished in ${seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)} s.`;
@@ -286,7 +286,7 @@ export class ExperimentsView {
 
   cancel() {
     this.cancelButton.disabled = true;
-    this.progressText.textContent = "Cancelling…";
+    this.progressText.textContent = "Canceling…";
     this.client.request("exp.cancel").catch(() => {});
   }
 

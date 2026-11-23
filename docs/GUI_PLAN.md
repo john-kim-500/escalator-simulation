@@ -8,7 +8,7 @@ browser through Pyodide**, and the page is static, so no server is needed.
 
 ## Goals
 
-1. **Configure:** every `SimConfig` parameter as a labelled control with its
+1. **Configure:** every `SimConfig` parameter as a labeled control with its
    units, valid range and a short explanation. Presets cover common scenarios.
 2. **Watch:** an animation of both strategies running *at the same time on the
    same crowd*, with live numbers and a chart of how many people have reached the top.
@@ -81,7 +81,7 @@ web/tests/            # node --test unit tests for pure JS (URL state, scaling, 
 | `exp.run {kind, config, ...}` | `progress {done, total}` … `result {...}` | Run compare/sweep one job at a time and report progress |
 | `exp.cancel` | `cancelled` | Stop after the current job |
 
-The worker answers one request at a time. Cancelling works because a long
+The worker answers one request at a time. Canceling works because a long
 experiment returns control between jobs, so the worker can read the cancel
 message.
 
@@ -110,7 +110,7 @@ library only, plain data, no I/O. Each comes with unit tests.
    `plan_*() → jobs`, `run_one(job)` and `collect_*(jobs, runs)`. The command
    line keeps calling `compare()`/`sweep()`, which use these internally. The
    worker calls the pieces one job at a time, which is what makes progress and
-   cancelling possible.
+   canceling possible.
 
 ## Screens
 
@@ -127,7 +127,7 @@ library only, plain data, no I/O. Each comes with unit tests.
 │   Arrivals ─●─ 120 │   │ ●    │   ●  │            │   ◆  │ ●    │          │
 │   Walk %  ●── 25%  │   └──────┴──────┘  bottom    └──────┴──────┘          │
 │ ▸ Spacing          │    queue: 41 | 40             queue: 12 | 97           │
-│ ▸ Behaviour        │   112 /min  wait 22 s         95 /min  wait 41 s       │
+│ ▸ Behavior        │   112 /min  wait 22 s         95 /min  wait 41 s       │
 │ ▸ Run              │                                                        │
 │                    │   People at the top ─────────────────────────────      │
 │ Seed [1] [New]     │    ── stand-both   ── walk-left    (lines diverge)    │
@@ -138,13 +138,13 @@ library only, plain data, no I/O. Each comes with unit tests.
 
 ### Configuration panel (both screens)
 - The parameters are grouped as in `SimConfig`: Escalator, Crowd, Spacing,
-  Behaviour, Run. Each has a slider plus a number box, with its unit and help text.
+  Behavior, Run. Each has a slider plus a number box, with its unit and help text.
 - Values are checked by the engine itself. Errors show next to the field, using
   the same messages as the command line.
 - Calculated values are shown next to the settings: escalator length, ride time
   and the capacity of each lane (`belt ÷ gap × 60`). The warm-up warning from the
   command line appears here too.
-- Behaviour settings that only matter for `walk-left` are labelled as such.
+- Behavior settings that only matter for `walk-left` are labeled as such.
 - Changing a setting during the live view restarts the run, after a short pause
   so that dragging a slider doesn't restart it on every pixel.
 
@@ -156,7 +156,7 @@ library only, plain data, no I/O. Each comes with unit tests.
   would hide one lane behind the other. Steps are drawn as faint lines that move
   with the belt.
 - **Who is who:** standers, walkers, defectors and blockers each get a distinct
-  colour **and** shape, so they can be told apart without relying on colour.
+  color **and** shape, so they can be told apart without relying on color.
   The queue is a cluster below the escalator. When it's longer than the drawing
   limit, it ends in a "+137" label.
 - **Live numbers per strategy:** throughput over the last 60 s, total queue,
@@ -179,7 +179,7 @@ library only, plain data, no I/O. Each comes with unit tests.
   A row of labels shows which strategy wins at each value, or "tie", using the
   same rule as the command line.
 - Download the results as **CSV/JSON in the same format as `--output`**, so files
-  from the GUI and the command line can be analysed the same way.
+  from the GUI and the command line can be analyzed the same way.
 - A **"Watch this scenario"** button on any result opens it in the live view
   with the same settings and seed.
 
@@ -224,7 +224,7 @@ These are estimates to check during milestone 2.
   settings, coordinate scaling, number formatting and sweep-range parsing.
 - **In the browser:** a short manual checklist per milestone: it loads, runs
   both strategies, the numbers match the command line for the same seed,
-  cancelling works, and the layout works at phone width and in light and dark
+  canceling works, and the layout works at phone width and in light and dark
   themes. Automated browser tests (Playwright) can be added later if this becomes
   tedious.
 - **Matching the command line:** for one fixed seed, the throughput shown in the
