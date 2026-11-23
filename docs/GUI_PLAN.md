@@ -236,7 +236,7 @@ These are estimates to check during milestone 2.
 2. ✅ **Web skeleton:** `index.html`, the worker loading Pyodide and the package,
    the loading screen, and one headless run whose results appear on the page.
    Check the performance estimates.
-3. ✅ **Live view** *(built and unit-tested; not yet checked in a real browser)*: the configuration panel built from `PARAM_INFO`, two
+3. ✅ **Live view** *(checked in Firefox)*: the configuration panel built from `PARAM_INFO`, two
    escalators side by side, playback controls, live numbers and the live chart.
 4. **Experiments view:** compare and sweep with progress and cancel, tables,
    charts, CSV/JSON download, and "Watch this scenario".
