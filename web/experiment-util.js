@@ -91,3 +91,39 @@ export function withAlpha(color, alpha) {
   if (m) return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
   return c;
 }
+
+// ------------------------------------------------------------ time saved
+// Wording matches the command line (cli.py `_saving`, `_time_saved_lines`).
+
+/** Shown instead of time saved when the runs didn't finish the line. */
+export const DRAIN_HINT = "Set “Finish the line” to 1 to measure time saved for walkers.";
+
+/** Explains who "walkers" are, under tables that split trips by group. */
+export const WALKERS_NOTE =
+  "Walkers = people who want to walk, counted the same way under every strategy.";
+
+/** "walkers save 41.7 ±7.4 s" or "others lose 10.2 ±5.1 s"; "walkers -" without data. */
+export function formatSaving(group, stats) {
+  if (!stats || stats.mean == null) return `${group} -`;
+  const verb = stats.mean >= 0 ? "save" : "lose";
+  const ci = stats.ci95 == null ? "" : ` ±${stats.ci95.toFixed(1)}`;
+  return `${group} ${verb} ${Math.abs(stats.mean).toFixed(1)}${ci} s`;
+}
+
+/** "walk-left vs stand-both: walkers save … per trip; others lose …" for a time_saved entry. */
+export function timeSavedLine(entry) {
+  return `${entry.by} vs ${entry.over}: ${formatSaving("walkers", entry.cares)} per trip; `
+    + formatSaving("others", entry.others);
+}
+
+/**
+ * A time_saved-style entry from two live results (one crowd, so no margin):
+ * the saving is the first result's trip minus the second's, like the pairs
+ * the experiments make.
+ */
+export function liveTimeSaved([over, by]) {
+  const diff = (key) => (over[key] == null || by[key] == null
+    ? { mean: null, ci95: null } : { mean: over[key] - by[key], ci95: null });
+  return { by: by.strategy, over: over.strategy, drained: Boolean(over.drained && by.drained),
+    cares: diff("trip_mean_cares"), others: diff("trip_mean_others") };
+}

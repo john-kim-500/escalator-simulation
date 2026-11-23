@@ -56,8 +56,8 @@ test("lane labels", () => {
   assert.equal(laneLabel(2, 3, "stand-both"), "Lane 3");
 });
 
-import { ciBounds, defaultRange, downloadName, etaSeconds, formatEta, formatMeanCi, parseList,
-  rangeValues, withAlpha } from "../experiment-util.js";
+import { ciBounds, defaultRange, downloadName, etaSeconds, formatEta, formatMeanCi, formatSaving,
+  liveTimeSaved, parseList, rangeValues, timeSavedLine, withAlpha } from "../experiment-util.js";
 
 test("sweep ranges have no float noise and respect limits", () => {
   assert.deepEqual(rangeValues(0, 0.5, 0.1).values, [0, 0.1, 0.2, 0.3, 0.4, 0.5]);
@@ -112,4 +112,29 @@ test("colors with alpha", () => {
   assert.equal(withAlpha(" #fff", 0.2), "rgba(255, 255, 255, 0.2)");
   assert.equal(withAlpha("rgb(1, 2, 3)", 0.1), "rgba(1, 2, 3, 0.1)");
   assert.equal(withAlpha("red", 0.1), "red");
+});
+
+test("time saved wording matches the command line", () => {
+  assert.equal(formatSaving("walkers", { mean: 41.71, ci95: 7.44 }), "walkers save 41.7 ±7.4 s");
+  assert.equal(formatSaving("others", { mean: -10.2, ci95: 5.1 }), "others lose 10.2 ±5.1 s");
+  assert.equal(formatSaving("walkers", { mean: 3, ci95: null }), "walkers save 3.0 s");
+  assert.equal(formatSaving("walkers", { mean: null, ci95: null }), "walkers -");
+  // Entry and line copied from `python3 -m escalator_sim compare --drain 1` (cli.py).
+  const entry = { by: "walk-left", over: "stand-both", drained: true,
+    cares: { mean: 4.840036197939192, ci95: 8.930324108250051, n: 3 },
+    others: { mean: -7.914039371625378, ci95: 11.184146674986238, n: 3 } };
+  assert.equal(timeSavedLine(entry),
+    "walk-left vs stand-both: walkers save 4.8 ±8.9 s per trip; others lose 7.9 ±11.2 s");
+});
+
+test("live time saved is the first result's trip minus the second's", () => {
+  const a = { strategy: "stand-both", drained: 1, trip_mean_cares: 60, trip_mean_others: 50 };
+  const b = { strategy: "walk-left", drained: 1, trip_mean_cares: 25, trip_mean_others: 58 };
+  const entry = liveTimeSaved([a, b]);
+  assert.equal(entry.by, "walk-left");
+  assert.equal(entry.drained, true);
+  assert.equal(timeSavedLine(entry),
+    "walk-left vs stand-both: walkers save 35.0 s per trip; others lose 8.0 s");
+  assert.equal(liveTimeSaved([a, { ...b, trip_mean_cares: null }]).cares.mean, null);
+  assert.equal(liveTimeSaved([{ ...a, drained: 0 }, b]).drained, false);
 });

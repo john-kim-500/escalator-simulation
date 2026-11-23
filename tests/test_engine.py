@@ -338,6 +338,22 @@ class TimeSaved(unittest.TestCase):
         self.assertIn("Fastest for walkers", out.getvalue())
 
 
+class LiveTripGroups(unittest.TestCase):
+    def test_live_group_averages_match_finished_people(self):
+        sim = Simulation(SimConfig(walk_fraction=0.4, **SHORT), "walk-left", 6)
+        stats = sim.live_stats()
+        self.assertIsNone(stats["trip_mean_cares"])
+        self.assertIsNone(stats["trip_mean_others"])
+        for until in (90.0, SHORT["duration"]):
+            sim.run(until=until)
+            stats = sim.live_stats()
+            for key, wants in (("trip_mean_cares", True), ("trip_mean_others", False)):
+                trips = [p.exit_time - p.arrival_time for p in sim.finished
+                         if p.wants_to_walk == wants]
+                with self.subTest(until=until, key=key):
+                    self.assertAlmostEqual(stats[key], sum(trips) / len(trips), places=9)
+
+
 class SnapshotAndResults(unittest.TestCase):
     def test_snapshot_and_results_are_json(self):
         sim = Simulation(SimConfig(**SHORT), "walk-left", 1)

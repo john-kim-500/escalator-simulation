@@ -160,7 +160,10 @@ library only, plain data, no I/O. Each comes with unit tests.
   The queue is a cluster below the escalator. When it's longer than the drawing
   limit, it ends in a "+137" label.
 - **Live numbers per strategy:** throughput over the last 60 s, total queue,
-  average wait so far, and the share of people walking.
+  average wait so far, walkers' and others' average trip so far, and the share
+  of people walking.
+- **Final results:** with two strategies and "Finish the line" at 1, a line
+  with the time saved for walkers and others on this crowd.
 - **Live chart:** people who have reached the top over time, for both
   strategies on the same axes. When the escalator is overloaded the lines visibly
   split apart, which makes the case for or against the theory in one picture.
@@ -182,6 +185,11 @@ library only, plain data, no I/O. Each comes with unit tests.
   from the GUI and the command line can be analyzed the same way.
 - A **"Watch this scenario"** button on any result opens it in the live view
   with the same settings and seed.
+- **Time saved** (from `TIME_SAVED_PLAN.md`): walkers' and others' trip
+  columns; with "Finish the line" at 1, the time-saved line, "Fastest for
+  walkers" and a time-saved chart, all from the engine's `time_saved` data.
+  Without it, a hint to turn it on. *(Tested in Node and jsdom; not yet
+  checked in a real browser.)*
 
 ## Performance
 

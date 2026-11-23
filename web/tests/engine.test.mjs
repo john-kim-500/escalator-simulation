@@ -98,6 +98,9 @@ test("snapshots carry kinds and a limited queue", { skip }, () => {
   assert.ok(lane.queue_length > 5);
   assert.ok(["stander", "walker", "defector", "blocker"].includes(lane.queue[0].kind));
   assert.equal(state.sims.length, 1);
+  const { stats } = later.sims[0];
+  assert.equal(typeof stats.trip_mean_cares, "number");
+  assert.equal(typeof stats.trip_mean_others, "number");
 });
 
 test("experiments run step by step", { skip }, () => {
@@ -106,9 +109,11 @@ test("experiments run step by step", { skip }, () => {
   assert.equal(total, 4);
   let p;
   do p = engine.expStep(0); while (p.done < p.total);
-  const { data, winners, csv, json } = engine.expResult();
+  const { data, winners, time_winners: timeWinners, csv, json } = engine.expResult();
   assert.equal(data.strategies["walk-left"].runs.length, 2);
   assert.equal(winners.length, 1);
+  assert.deepEqual(timeWinners, ["-"]); // the drain is off
+  assert.equal(data.time_saved[0].drained, false);
   assert.ok(csv.startsWith("strategy,seed,"));
   assert.deepEqual(JSON.parse(json).seeds, [1, 2]);
 });

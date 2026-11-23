@@ -217,8 +217,8 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
    tests. The drain is optional (`drain`, off by default).
 2. ✅ **Paired time saved** in `experiments.py` and `report.py`. CLI tables and
    CSV/JSON. The "Fastest for walkers" winner rule. Shown with `--drain 1`.
-3. **GUI:** experiments table rows, the time-saved chart and winner, and the
-   live-view stats.
+3. ✅ **GUI:** experiments table rows, the time-saved chart and winner, and the
+   live-view stats. Shown when "Finish the line" is 1, with a hint otherwise.
 4. **Write-up:** run the sweeps above at the Holborn settings and record the
    findings, including the throughput and time-saved figures side by side.
 

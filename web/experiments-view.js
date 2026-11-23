@@ -6,10 +6,28 @@ import { el } from "./dom.js";
 import { cssVar, onThemeChange } from "./canvas-util.js";
 import { formatChange, formatClock } from "./format.js";
 import { barChart, loadChartJs, sweepChart } from "./experiment-charts.js";
-import { defaultRange, downloadName, etaSeconds, formatEta, formatMeanCi, parseList,
-  rangeValues } from "./experiment-util.js";
+import { DRAIN_HINT, WALKERS_NOTE, defaultRange, downloadName, etaSeconds, formatEta,
+  formatMeanCi, parseList, rangeValues, timeSavedLine } from "./experiment-util.js";
 
 const SERIES_VARS = ["--series-1", "--series-2", "--series-3"];
+// Time-saved charts: walkers in the animation's walker color, others in gray.
+const GROUP_SERIES = [
+  ["Walkers", "cares", "--kind-walker"],
+  ["Others", "others", "--series-arrived"],
+];
+
+/** The first time_saved pair if its runs finished the line, else null. */
+const drainedPair = (group) => (group.time_saved?.[0]?.drained ? group.time_saved[0] : null);
+
+/** "Fastest for walkers: …" in the same style as the throughput verdict. */
+function timeVerdict(winner) {
+  if (winner === "tie") {
+    return "Fastest for walkers: a tie. The difference is within the margin of error; "
+      + "more replications may separate them.";
+  }
+  if (winner === "-") return "Fastest for walkers: not enough data.";
+  return `Fastest for walkers: ${winner}, by more than the margin of error.`;
+}
 const DEFAULT_REPLICATIONS = { compare: 10, sweep: 5 }; // the command line's defaults
 const MAX_REPLICATIONS = 200;
 const KIND_NOTES = {
@@ -24,6 +42,8 @@ const METRICS = [
   ["wait_mean", "Average wait s", 1],
   ["wait_p95", "95% waited less than s", 1],
   ["trip_mean", "Average trip s", 1],
+  ["trip_mean_cares", "Walkers' average trip s", 1],
+  ["trip_mean_others", "Others' average trip s", 1],
   ["queue_max", "Longest queue", 0],
   ["queue_end", "Queue at end", 0],
   ["walked_share", "Walked", 0, true],
@@ -348,7 +368,7 @@ export class ExperimentsView {
     this.renderCharts();
   }
 
-  compareResults(spec, { data, winners }) {
+  compareResults(spec, { data, winners, time_winners: timeWinners }) {
     const names = Object.keys(data.strategies);
     const summaries = names.map((n) => data.strategies[n].summary);
     const head = el("tr", {}, el("th", { scope: "col", text: "Strategy" }),
@@ -370,6 +390,9 @@ export class ExperimentsView {
         ? "Most throughput: a tie. The difference is within the margins of error; "
           + "more replications may separate them."
         : `Most throughput: ${winners[0]}, by more than the margins of error.`);
+      const pair = drainedPair(data);
+      if (pair) lines.push(`${timeSavedLine(pair)}.`, timeVerdict(timeWinners[0]));
+      else lines.push(DRAIN_HINT);
     }
     const watch = el("button", { type: "button", class: "button", text: "Watch this scenario",
       title: `Open the live view with these settings and seed ${data.seeds[0]}` });
@@ -378,17 +401,23 @@ export class ExperimentsView {
     return [
       el("div", { class: "table-wrap" },
         el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))),
+      el("p", { class: "card-note", text: WALKERS_NOTE }),
       el("div", { class: "verdict" }, ...lines.map((t) => el("p", { text: t }))),
       el("div", { class: "control-row" }, watch),
     ];
   }
 
-  sweepResults(spec, { data, winners }) {
+  sweepResults(spec, { data, winners, time_winners: timeWinners }) {
     const names = spec.strategies;
+    // A sweep over `drain` itself can mix drained and undrained points.
+    const showTime = names.length >= 2 && data.points.some(drainedPair);
+    const by = data.points[0].time_saved[0]?.by;
     const head = el("tr", {}, el("th", { scope: "col", text: data.param }),
       ...names.map((n) => el("th", { scope: "col", text: `${n} thru/min` })),
       ...names.map((n) => el("th", { scope: "col", text: `${n} wait s` })),
       el("th", { scope: "col", text: "Most throughput" }),
+      ...(showTime ? [el("th", { scope: "col", text: `Walkers save s (${by})` }),
+        el("th", { scope: "col", text: "Fastest for walkers" })] : []),
       el("th", { scope: "col", text: "" }));
     const rows = data.points.map((point, i) => {
       const watch = el("button", { type: "button", class: "button small", text: "Watch",
@@ -404,6 +433,7 @@ export class ExperimentsView {
         ...names.map((n) => el("td", { text: formatMeanCi(summary(n).throughput_per_min) })),
         ...names.map((n) => el("td", { text: formatMeanCi(summary(n).wait_mean) })),
         el("td", { class: winners[i] === "tie" ? "tie" : "winner", text: winners[i] }),
+        ...(showTime ? this.timeCells(point, timeWinners[i]) : []),
         el("td", {}, watch));
     });
     return [
@@ -411,7 +441,17 @@ export class ExperimentsView {
         el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))),
       el("p", { class: "card-note",
         text: "“tie” means the lead is within the margins of error "
-          + "(the command line's rule)." }),
+          + "(the command line's rule). " + (showTime ? WALKERS_NOTE : DRAIN_HINT) }),
+    ];
+  }
+
+  /** "Walkers save" and "Fastest for walkers" cells for one sweep point. */
+  timeCells(point, timeWinner) {
+    const pair = drainedPair(point);
+    const quiet = !pair || timeWinner === "tie" || timeWinner === "-";
+    return [
+      el("td", { text: pair ? formatMeanCi(pair.cares) : "–" }),
+      el("td", { class: quiet ? "tie" : "winner", text: pair ? timeWinner : "–" }),
     ];
   }
 
@@ -458,22 +498,26 @@ export class ExperimentsView {
       return { canvas, figure: el("figure", { class: "exp-chart" },
         el("figcaption", { text: title }), el("div", { class: "chart-frame" }, canvas)) };
     };
+    const { data } = result;
     const metrics = [
       ["throughput_per_min", "Throughput (people/min)"],
       ["wait_mean", "Average wait (s)"],
     ];
-    const figures = metrics.map(([, title]) => make(title));
+    const groups = data.points ?? [data];
+    const timePair = names.length >= 2 ? groups.map(drainedPair).find(Boolean) : null;
+    const timeTitle = timePair && `Time saved per trip by ${timePair.by} (s)`;
+    const titles = [...metrics.map(([, title]) => title), ...(timePair ? [timeTitle] : [])];
+    const figures = titles.map(make);
     box.replaceChildren(...figures.map((f) => f.figure));
 
-    const { data } = result;
+    const label = data.points && this.info.param_info[data.param];
+    const xTitle = label && `${label.label}${label.unit ? ` (${label.unit})` : ""}`;
+    const values = data.points?.map((p) => p.value);
     metrics.forEach(([key, title], i) => {
       const canvas = figures[i].canvas;
       if (data.points) {
-        const label = this.info.param_info[data.param];
         this.charts.push(sweepChart(Chart, canvas, {
-          xTitle: `${label.label}${label.unit ? ` (${label.unit})` : ""}`,
-          yTitle: title,
-          values: data.points.map((p) => p.value),
+          xTitle, yTitle: title, values,
           series: names.map((n, j) => ({ name: n, color: colors[j],
             stats: data.points.map((p) => p.strategies[n].summary[key]) })),
         }));
@@ -484,5 +528,20 @@ export class ExperimentsView {
         }));
       }
     });
+    if (!timePair) return;
+    const canvas = figures[metrics.length].canvas;
+    const groupColors = GROUP_SERIES.map(([, , v]) => cssVar(v));
+    if (data.points) {
+      this.charts.push(sweepChart(Chart, canvas, {
+        xTitle, yTitle: timeTitle, values,
+        series: GROUP_SERIES.map(([name, key], j) => ({ name, color: groupColors[j],
+          stats: data.points.map((p) => drainedPair(p)?.[key] ?? null) })),
+      }));
+    } else {
+      this.charts.push(barChart(Chart, canvas, {
+        labels: GROUP_SERIES.map(([name]) => name), colors: groupColors, title: timeTitle,
+        stats: GROUP_SERIES.map(([, key]) => timePair[key]),
+      }));
+    }
   }
 }

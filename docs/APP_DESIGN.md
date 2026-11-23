@@ -228,7 +228,7 @@ ExperimentsView.run → request("exp.run", {spec}, onProgress)
       await setTimeout(0)     ← lets an "exp.cancel" message be handled
       if canceled: expCancel() → {canceled: true}
       expStep(0.2)            → runs jobs for about 0.2 s → {done, total} → progress message
-    expResult()               → {data, winners, csv, json}
+    expResult()               → {data, winners, time_winners, csv, json}
 ```
 
 The `setTimeout(0)` pause matters. A Web Worker handles one message at a time,
