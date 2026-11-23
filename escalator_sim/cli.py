@@ -11,7 +11,7 @@ import json
 import sys
 from typing import Any, Optional, Sequence
 
-from .config import SimConfig
+from .config import GROUPS, PARAM_INFO, SimConfig
 from .engine import Simulation
 from .experiments import compare, sweep
 from .strategies import available_strategies
@@ -32,12 +32,16 @@ TABLE_METRICS = [
 
 def _config_parent() -> argparse.ArgumentParser:
     parent = argparse.ArgumentParser(add_help=False)
-    group = parent.add_argument_group("simulation parameters (defaults in brackets)")
     defaults = SimConfig()
+    groups = {key: parent.add_argument_group(f"{title} (defaults in brackets)")
+              for key, title in GROUPS.items()}
     for name, typ in SimConfig.field_types().items():
-        group.add_argument(
+        info = PARAM_INFO[name]
+        unit = f" ({info['unit']})" if info["unit"] else ""
+        groups[info["group"]].add_argument(
             "--" + name.replace("_", "-"), dest=name, type=typ, default=None,
-            metavar=typ.__name__.upper(), help=f"[{getattr(defaults, name)}]",
+            metavar=typ.__name__.upper(),
+            help=f"{info['help']}{unit} [{getattr(defaults, name)}]",
         )
     return parent
 
@@ -124,12 +128,8 @@ def _csv(rows: list[dict[str, Any]]) -> str:
 
 
 def _describe(config: SimConfig) -> str:
-    ride = config.length / config.belt_speed
-    warning = ""
-    if config.warmup < ride:
-        warning = (f"\nWARNING: warm-up ({config.warmup:g} s) is shorter than one standing ride "
-                   f"({ride:.0f} s), so throughput is underestimated. Raise --warmup.")
-    return warning.lstrip("\n") + ("\n" if warning else "") + (f"Escalator {config.length:.1f} m long ({config.rise:g} m rise), belt {config.belt_speed:g} m/s; "
+    warnings = "".join(f"WARNING: {msg}. Raise --{field}.\n" for field, msg in config.warnings())
+    return warnings + (f"Escalator {config.length:.1f} m long ({config.rise:g} m rise), belt {config.belt_speed:g} m/s; "
             f"{config.arrival_rate:g} arrivals/min, {config.walk_fraction:.0%} want to walk; "
             f"measured {config.duration - config.warmup:g} s after {config.warmup:g} s warm-up.")
 

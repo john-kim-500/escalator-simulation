@@ -63,6 +63,12 @@ class Simulation:
         self.queue_max = 0
         self.lane_queue_max = [0] * lanes
 
+        # Running counts for live_stats(), so a GUI can poll it every frame.
+        self._recent_exits: deque[float] = deque()   # exit times in the last window
+        self._boarded = 0
+        self._wait_sum = 0.0
+        self._walked = 0
+
     # ------------------------------------------------------------------ API
 
     @property
@@ -89,8 +95,16 @@ class Simulation:
             self.step()
         return self.results()
 
-    def snapshot(self) -> dict[str, Any]:
-        """Full current state as plain data (for visual front ends)."""
+    def snapshot(self, max_queue: Optional[int] = None) -> dict[str, Any]:
+        """Current state as plain data (for visual front ends).
+
+        `max_queue` limits how many queueing people are listed per lane (the
+        front of the queue); `queue_length` always gives the full count.
+        """
+        def queue_people(q):
+            shown = q if max_queue is None else list(q)[:max_queue]
+            return [p.to_dict() for p in shown]
+
         return {
             "time": self.time,
             "length": self.length,
@@ -103,10 +117,27 @@ class Simulation:
                 {
                     "index": i,
                     "people": [p.to_dict() for p in self.on_belt[i]],
-                    "queue": [p.to_dict() for p in self.queues[i]],
+                    "queue": queue_people(self.queues[i]),
+                    "queue_length": len(self.queues[i]),
                 }
                 for i in range(self.config.lanes)
             ],
+        }
+
+    LIVE_WINDOW = 60.0  # seconds used for live throughput
+
+    def live_stats(self) -> dict[str, Any]:
+        """Cheap running statistics (no warm-up exclusion) for live displays."""
+        window = min(self.LIVE_WINDOW, self.time)
+        return {
+            "time": self.time,
+            "arrived": len(self.people),
+            "finished": len(self.finished),
+            "throughput_recent": len(self._recent_exits) / window * 60.0 if window > 0 else 0.0,
+            "queue_lengths": [len(q) for q in self.queues],
+            "on_belt": [len(lane) for lane in self.on_belt],
+            "wait_mean": self._wait_sum / self._boarded if self._boarded else None,
+            "walked_share": self._walked / len(self.finished) if self.finished else None,
         }
 
     def results(self) -> dict[str, Any]:
@@ -133,6 +164,7 @@ class Simulation:
                 person, [len(q) for q in self.queues], self._behaviour_rng
             )
             person.lane, person.walking = lane, walking
+            person.kind = self.strategy.kind(person)
             self.people.append(person)
             self.queues[lane].append(person)
             self._next_arrival = self._draw_interarrival(self._next_arrival)
@@ -154,6 +186,11 @@ class Simulation:
             p.exit_time = t1 - (p.pos - self.length) / p.speed
             p.pos = self.length
             self.finished.append(p)
+            self._recent_exits.append(p.exit_time)
+            self._walked += p.walking
+        cutoff = t1 - self.LIVE_WINDOW
+        while self._recent_exits and self._recent_exits[0] <= cutoff:
+            self._recent_exits.popleft()
 
     def _board_lane(self, lane: int, t0: float, t1: float) -> None:
         cfg = self.config
@@ -181,6 +218,8 @@ class Simulation:
             p.board_time = earliest
             people.append(p)
             self._last_board[lane] = earliest
+            self._boarded += 1
+            self._wait_sum += earliest - p.arrival_time
 
     def _sample_queues(self) -> None:
         if self.time < self.config.warmup - _EPS:

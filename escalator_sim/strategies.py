@@ -15,6 +15,14 @@ from .person import Person
 WALK_LANE = 0  # the left lane
 
 
+KINDS = {
+    "stander": "Standing",
+    "walker": "Walking",
+    "defector": "Stander who switched to walking",
+    "blocker": "Standing in the walk lane",
+}
+
+
 class Strategy:
     name: str = ""
     description: str = ""
@@ -31,6 +39,10 @@ class Strategy:
     ) -> tuple[int, bool]:
         """Return (lane, walking) for a newly arrived person."""
         raise NotImplementedError
+
+    def kind(self, person: Person) -> str:
+        """Label for display, once lane and walking are set."""
+        return "walker" if person.walking else "stander"
 
 
 _REGISTRY: dict[str, type[Strategy]] = {}
@@ -93,3 +105,10 @@ class WalkLeft(Strategy):
         if tempted and rng.random() < cfg.defect_prob:
             return WALK_LANE, True
         return lane, False
+
+    def kind(self, person):
+        if person.walking and not person.wants_to_walk:
+            return "defector"   # a stander who switched to walking
+        if person.lane == WALK_LANE and not person.walking:
+            return "blocker"    # standing in the walk lane
+        return super().kind(person)
