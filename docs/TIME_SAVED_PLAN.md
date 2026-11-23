@@ -208,10 +208,11 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
   The findings show blockers can decide the result, so overtaking (or walkers
   stepping around blockers) deserves its own plan. Filippidis et al. (2025)
   let walkers overtake through the right lane when there's room.
+  Now a follow-up question in [ENGINE_DESIGN.md](ENGINE_DESIGN.md#open-questions).
 - **The crowd at the bottom:** Filippidis et al. find that people choosing a
   lane in a crowd slow everyone's boarding, and that standers end up in the
   walk lane once it's crowded. Their walk-left carries 71–80 per minute at the
-  peak, against about 101 here ([findings](FINDINGS.md#against-another-model)).
+  peak, against about 106 here ([findings](FINDINGS.md#against-another-model)).
   Should boarding slow down, and `blocker_rate` rise, as the line grows?
 - **How many people walk at the peak:** a fixed `walk_fraction` lets more
   people walk than Davis & Dutta saw at Holborn's height once more than about

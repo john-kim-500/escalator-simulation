@@ -252,8 +252,9 @@ These are estimates to check during milestone 2.
 4. ✅ **Experiments view** *(built and tested in Node and jsdom; not yet checked in a real browser)*:
    compare and sweep with progress and cancel, tables, charts, CSV/JSON
    download, and "Watch this scenario".
-5. **Polish:** presets, settings kept in the URL, phone-width layout, dark mode,
-   keyboard controls, and a short "how to read this" help panel.
+5. *(Partly done)* **Polish:** presets, settings kept in the URL, phone-width layout, dark mode,
+   keyboard controls, and a short "how to read this" help panel. Done so far: phone-width
+   layout, dark mode, and **Space** for play/pause.
 6. *(Optional)* A pool of workers for faster sweeps, bundling Pyodide for
    offline use, and the GitHub Pages workflow.
 
@@ -263,7 +264,7 @@ Confirmed on 2026-11-20.
 
 | Question | Decision |
 |---|---|
-| Where it runs | Locally with `http.server` for now. GitHub Pages only if you upgrade your plan or make the repo public |
+| Where it runs | Locally with `http.server` for now. GitHub Pages only if you upgrade your plan or make the repo public (the repo is now public, so Pages is possible) |
 | Drawing style | Top-down view of the lanes, clearest for two lanes. A decorative side view could come later |
 | Live view default | Both strategies side by side on the same crowd |
 | Front end | Plain JS with no build step, plus Chart.js for experiment charts. Move to a framework only if the UI grows a lot |
