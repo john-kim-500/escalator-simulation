@@ -69,6 +69,9 @@ class Simulation:
         self._boarded = 0
         self._wait_sum = 0.0
         self._walked = 0
+        # Trip time sums and counts, [others, cares] (indexed by wants_to_walk).
+        self._trip_sum = [0.0, 0.0]
+        self._trip_count = [0, 0]
 
     # ------------------------------------------------------------------ API
 
@@ -166,7 +169,13 @@ class Simulation:
             "on_belt": [len(lane) for lane in self.on_belt],
             "wait_mean": self._wait_sum / self._boarded if self._boarded else None,
             "walked_share": self._walked / len(self.finished) if self.finished else None,
+            "trip_mean_cares": self._trip_mean(True),
+            "trip_mean_others": self._trip_mean(False),
         }
+
+    def _trip_mean(self, cares: bool) -> float | None:
+        n = self._trip_count[cares]
+        return self._trip_sum[cares] / n if n else None
 
     def results(self) -> dict[str, Any]:
         """Summary metrics for the run so far (excluding warm-up)."""
@@ -214,6 +223,8 @@ class Simulation:
             self.finished.append(p)
             self._recent_exits.append(p.exit_time)
             self._walked += p.walking
+            self._trip_sum[p.wants_to_walk] += p.exit_time - p.arrival_time
+            self._trip_count[p.wants_to_walk] += 1
         cutoff = t1 - self.LIVE_WINDOW
         while self._recent_exits and self._recent_exits[0] <= cutoff:
             self._recent_exits.popleft()

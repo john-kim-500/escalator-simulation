@@ -93,9 +93,12 @@ export function barChart(Chart, canvas, { labels, colors, stats, title, digits =
   options.plugins.legend.display = false;
   options.plugins.tooltip.callbacks = { label: (item) => ciText(stats[item.dataIndex], digits) };
   options.scales.x.grid.display = false;
-  // Leave room above the tallest error bar.
+  // Leave room above the tallest error bar, and below the lowest one if any go
+  // below zero (time saved can be negative).
   const top = Math.max(0, ...stats.map((s) => ciBounds(s)[1] ?? 0));
+  const bottom = Math.min(0, ...stats.map((s) => ciBounds(s)[0] ?? 0));
   options.scales.y.suggestedMax = top * 1.08;
+  options.scales.y.suggestedMin = bottom * 1.08;
   return new Chart(canvas, {
     type: "bar",
     data: {

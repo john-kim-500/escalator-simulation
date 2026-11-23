@@ -225,15 +225,20 @@ class Drain(unittest.TestCase):
         self.assertEqual(r["drained"], 1)
         self.assertGreater(sim.time, sim.config.duration)
 
-    def test_off_by_default(self):
-        sim = Simulation(SimConfig(**OVERLOADED), "walk-left", 2)
+    def test_on_by_default(self):
+        self.assertEqual(SimConfig().drain, 1)
+        r = Simulation(SimConfig(**OVERLOADED), "walk-left", 2).run()
+        self.assertEqual(r["drained"], 1)
+
+    def test_drain_off_stops_at_duration(self):
+        sim = Simulation(SimConfig(drain=0, **OVERLOADED), "walk-left", 2)
         r = sim.run()
         self.assertEqual(r["drained"], 0)
         self.assertAlmostEqual(sim.time, sim.config.duration)
 
     def test_window_figures_unchanged(self):
         for strategy in ("stand-both", "walk-left"):
-            off = Simulation(SimConfig(**OVERLOADED), strategy, 2).run()
+            off = Simulation(SimConfig(drain=0, **OVERLOADED), strategy, 2).run()
             on = Simulation(SimConfig(drain=1, **OVERLOADED), strategy, 2).run()
             with self.subTest(strategy=strategy):
                 self.assertGreater(off["queue_end"], 0)
@@ -241,7 +246,7 @@ class Drain(unittest.TestCase):
                     self.assertEqual(on[key], off[key], key)
 
     def test_earlier_trips_unchanged(self):
-        cfg = SimConfig(arrival_rate=60, **SHORT)
+        cfg = SimConfig(arrival_rate=60, drain=0, **SHORT)
         off, on = Simulation(cfg, "walk-left", 4), Simulation(cfg.with_changes(drain=1),
                                                               "walk-left", 4)
         off.run(), on.run()
@@ -252,7 +257,7 @@ class Drain(unittest.TestCase):
                 self.assertEqual((p.board_time, p.exit_time), before[p.id])
 
     def test_fixes_undercount_when_overloaded(self):
-        off = Simulation(SimConfig(**OVERLOADED), "walk-left", 2).run()
+        off = Simulation(SimConfig(drain=0, **OVERLOADED), "walk-left", 2).run()
         on = Simulation(SimConfig(drain=1, **OVERLOADED), "walk-left", 2).run()
         self.assertGreater(on["wait_mean"], off["wait_mean"])
         self.assertGreater(on["trip_mean"], off["trip_mean"])
@@ -338,6 +343,22 @@ class TimeSaved(unittest.TestCase):
         self.assertIn("Fastest for walkers", out.getvalue())
 
 
+class LiveTripGroups(unittest.TestCase):
+    def test_live_group_averages_match_finished_people(self):
+        sim = Simulation(SimConfig(walk_fraction=0.4, **SHORT), "walk-left", 6)
+        stats = sim.live_stats()
+        self.assertIsNone(stats["trip_mean_cares"])
+        self.assertIsNone(stats["trip_mean_others"])
+        for until in (90.0, SHORT["duration"]):
+            sim.run(until=until)
+            stats = sim.live_stats()
+            for key, wants in (("trip_mean_cares", True), ("trip_mean_others", False)):
+                trips = [p.exit_time - p.arrival_time for p in sim.finished
+                         if p.wants_to_walk == wants]
+                with self.subTest(until=until, key=key):
+                    self.assertAlmostEqual(stats[key], sum(trips) / len(trips), places=9)
+
+
 class SnapshotAndResults(unittest.TestCase):
     def test_snapshot_and_results_are_json(self):
         sim = Simulation(SimConfig(**SHORT), "walk-left", 1)
@@ -354,7 +375,7 @@ class SnapshotAndResults(unittest.TestCase):
         self.assertFalse(Simulation(SimConfig(**SHORT), "stand-both").run()["warmup_too_short"])
 
     def test_overloaded_waits_include_people_still_queueing(self):
-        cfg = SimConfig(arrival_rate=300, **SHORT)
+        cfg = SimConfig(arrival_rate=300, drain=0, **SHORT)
         r = Simulation(cfg, "stand-both", 1).run()
         self.assertGreater(r["queue_end"], 0)
         self.assertGreater(r["wait_max"], 30)
@@ -399,7 +420,7 @@ class Experiments(unittest.TestCase):
         self.assertEqual([p["value"] for p in s["points"]], [0.0, 0.5])
 
     def test_time_saved_without_drain_is_marked_and_has_no_winner(self):
-        c = compare(SimConfig(**SHORT), ["stand-both", "walk-left"], 2)
+        c = compare(SimConfig(drain=0, **SHORT), ["stand-both", "walk-left"], 2)
         self.assertEqual(len(c["time_saved"]), 1)
         self.assertFalse(c["time_saved"][0]["drained"])
         self.assertEqual(time_winner(c["time_saved"][0]), "-")
@@ -424,7 +445,7 @@ class Cli(unittest.TestCase):
         self.assertIn("stand-both", self.run_cli("strategies"))
 
     def test_without_drain_hints_instead_of_time_saved(self):
-        short = ["--duration", "90", "--warmup", "45"]
+        short = ["--duration", "90", "--warmup", "45", "--drain", "0"]
         for command in (["compare", "-n", "2"],
                         ["sweep", "--param", "arrival_rate", "--values", "60,120", "-n", "2"]):
             text = self.run_cli(*command, *short)

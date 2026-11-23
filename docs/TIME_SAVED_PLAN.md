@@ -87,8 +87,10 @@ What they suggest:
 
 ### 1. Let everyone who arrives finish (drain phase) ✅
 
-Done, as an option: `drain` (`--drain 1`), off by default so existing results
-don't change. With it on, **waits** are complete too, not just trip times.
+Done: `drain`, on by default (`--drain 0` turns it off). It started as an
+option, off by default, and was switched on so the page and the command line
+agree and time saved always shows. With it on, **waits** are complete too, not
+just trip times.
 There is no cap on how long the drain runs. See "Finishing the line" in
 [ENGINE_DESIGN.md](ENGINE_DESIGN.md#finishing-the-line-drain).
 
@@ -136,8 +138,8 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
 
 - **This needs `drain = 1`.** Without it, each strategy leaves out a
   different set of unfinished people. The numbers are always in the JSON,
-  marked `drained`, but the command line shows them only with `--drain 1`
-  and prints a hint otherwise.
+  marked `drained`, but the command line shows them only when the runs
+  drained (the default) and prints a hint with `--drain 0`.
 - With the drain, both strategies measure the **same people** for a given
   seed. So the per-person average saving is exactly
   `trip_mean_cares(stand-both) − trip_mean_cares(walk-left)` for that seed. No
@@ -214,11 +216,11 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
 ## Milestones
 
 1. ✅ **Drain phase and trip by group** in the engine and `summarize()`, with
-   tests. The drain is optional (`drain`, off by default).
+   tests. The drain is on by default; `drain = 0` turns it off.
 2. ✅ **Paired time saved** in `experiments.py` and `report.py`. CLI tables and
-   CSV/JSON. The "Fastest for walkers" winner rule. Shown with `--drain 1`.
-3. **GUI:** experiments table rows, the time-saved chart and winner, and the
-   live-view stats.
+   CSV/JSON. The "Fastest for walkers" winner rule. Hidden with `--drain 0`.
+3. ✅ **GUI:** experiments table rows, the time-saved chart and winner, and the
+   live-view stats. Shown when "Finish the line" is 1, with a hint otherwise.
 4. **Write-up:** run the sweeps above at the Holborn settings and record the
    findings, including the throughput and time-saved figures side by side.
 

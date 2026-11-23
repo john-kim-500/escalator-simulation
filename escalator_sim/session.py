@@ -15,7 +15,7 @@ from . import __version__
 from .config import GROUPS, PARAM_INFO, PRESETS, SimConfig, check_values, convert_values
 from .engine import Simulation
 from .experiments import collect, plan_compare, plan_sweep, run_one
-from .report import experiment_csv, to_json, winners
+from .report import experiment_csv, time_winner, to_json, winners
 from .strategies import KINDS, available_strategies, get_strategy
 
 
@@ -188,13 +188,18 @@ class Session:
         return dumps({"done": len(self._runs), "total": len(jobs)})
 
     def exp_result(self) -> str:
-        """{data, winners, csv, json}: data is what compare()/sweep() return;
-        winners uses the command line's tie rule on throughput (one entry per
-        sweep value); csv/json are exactly what `--output csv|json` prints."""
+        """{data, winners, time_winners, csv, json}: data is what compare()/sweep()
+        return; winners uses the command line's tie rule on throughput and
+        time_winners its "Fastest for walkers" rule (one entry per sweep value;
+        "-" with fewer than two strategies or without the drain); csv/json are
+        exactly what `--output csv|json` prints."""
         if self._plan is None or len(self._runs) < len(self._plan["jobs"]):
             raise ValueError("experiment not finished")
         data = collect(self._plan, self._runs)
-        return dumps({"data": data, "winners": winners(data),
+        groups = data["points"] if "points" in data else [data]
+        time_winners = [time_winner(g["time_saved"][0]) if g["time_saved"] else "-"
+                        for g in groups]
+        return dumps({"data": data, "winners": winners(data), "time_winners": time_winners,
                       "csv": experiment_csv(data), "json": to_json(data)})
 
     def exp_cancel(self) -> None:

@@ -42,7 +42,7 @@ class SimConfig:
     duration: float = 600.0
     warmup: float = 120.0
     dt: float = 0.1
-    drain: int = 0          # 1 = finish everyone measured after the run ends
+    drain: int = 1          # finish everyone measured after the run ends; 0 = stop at duration
 
     def __post_init__(self) -> None:
         self.validate()
@@ -230,7 +230,7 @@ PARAM_INFO: dict[str, dict[str, Any]] = {
     "drain": _p("run", "Finish the line", "", 0, 1, 1,
                 "1 = after the run ends, stop arrivals and keep going until everyone "
                 "measured reaches the top, so waits and trip times are complete. People "
-                "per minute and line length still stop at the end."),
+                "per minute and line length still stop at the end. 0 = stop at the end."),
 }
 
 

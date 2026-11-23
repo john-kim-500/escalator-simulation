@@ -208,6 +208,29 @@ class SessionApi(unittest.TestCase):
         self.assertEqual(result["data"]["time_saved"], json.loads(dumps(data["time_saved"])))
         self.assertTrue(result["data"]["time_saved"][0]["drained"])
         self.assertIn('"time_saved"', result["json"])
+        self.assertEqual(result["time_winners"],
+                         [report.time_winner(data["time_saved"][0])])
+        self.assertNotEqual(result["time_winners"], ["-"])
+
+    def test_time_winners_per_point_and_without_drain(self):
+        def run(spec):
+            s = Session()
+            total = json.loads(s.exp_start(json.dumps(spec)))["total"]
+            while json.loads(s.exp_step(0))["done"] < total:
+                pass
+            return json.loads(s.exp_result())
+        both = ["stand-both", "walk-left"]
+        sweep_spec = {"kind": "sweep", "config": {**SHORT, "drain": 1}, "strategies": both,
+                      "replications": 2, "param": "blocker_rate", "values": [0, 0.1]}
+        result = run(sweep_spec)
+        self.assertEqual(result["time_winners"],
+                         [report.time_winner(p["time_saved"][0])
+                          for p in result["data"]["points"]])
+        plain = {"kind": "compare", "config": {**SHORT, "drain": 0}, "strategies": both,
+                 "replications": 2}
+        self.assertEqual(run(plain)["time_winners"], ["-"])
+        one = {**plain, "strategies": ["walk-left"]}
+        self.assertEqual(run(one)["time_winners"], ["-"])
 
     def test_sweep_result_matches_command_line(self):
         s = Session()

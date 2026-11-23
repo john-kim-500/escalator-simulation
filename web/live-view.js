@@ -6,6 +6,7 @@ import { LiveChart } from "./live-chart.js";
 import { cssVar, onThemeChange } from "./canvas-util.js";
 import { formatChange, formatClock, formatNumber, formatPercent } from "./format.js";
 import { el } from "./dom.js";
+import { DRAIN_HINT, WALKERS_NOTE, liveTimeSaved, timeSavedLine } from "./experiment-util.js";
 
 const SPEEDS = [1, 2, 5, 10, 25, 50];
 const DEFAULT_SPEED = 10;
@@ -314,6 +315,8 @@ export class LiveView {
         ["Throughput, last 60 s", `${formatNumber(st.throughput_recent, 0)} /min`],
         ["Queueing", st.queue_lengths.join(" | ")],
         ["Average wait so far", `${formatNumber(st.wait_mean)} s`],
+        ["Walkers' average trip so far", `${formatNumber(st.trip_mean_cares)} s`],
+        ["Others' average trip so far", `${formatNumber(st.trip_mean_others)} s`],
         ["Walked", formatPercent(st.walked_share)],
       ];
       card.stats.replaceChildren(
@@ -353,6 +356,8 @@ export class LiveView {
       ["Average wait", "wait_mean", 1, " s"],
       ["95% waited less than", "wait_p95", 1, " s"],
       ["Average trip", "trip_mean", 1, " s"],
+      ["Walkers' average trip", "trip_mean_cares", 1, " s"],
+      ["Others' average trip", "trip_mean_others", 1, " s"],
       ["Longest queue", "queue_max", 0, ""],
       ["Still queueing at the end", "queue_end", 0, ""],
     ];
@@ -367,13 +372,19 @@ export class LiveView {
       ...results.map((r) => el("td", { text: `${formatNumber(r[key], digits)}${unit}` })),
       compareTwo ? el("td", { text: formatChange(results[0][key], results[1][key]) }) : null));
     const measured = formatClock(results[0].measured_seconds);
+    const notes = [WALKERS_NOTE];
+    if (compareTwo) {
+      const saved = liveTimeSaved(results);
+      notes.push(saved.drained ? `${timeSavedLine(saved)}, on this crowd.` : DRAIN_HINT);
+    }
     this.results.replaceChildren(
       el("h2", { class: "card-title", text: "Results" }),
       el("p", { class: "card-note",
         text: `Measured over the ${measured} after the warm-up, for seed ${results[0].seed}. `
           + "One run is noisy: use Experiments to average over many crowds." }),
       el("div", { class: "table-wrap" },
-        el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))));
+        el("table", {}, el("thead", {}, head), el("tbody", {}, ...rows))),
+      el("div", { class: "verdict" }, ...notes.map((t) => el("p", { text: t }))));
     this.results.hidden = false;
   }
 }
