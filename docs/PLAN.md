@@ -5,7 +5,8 @@
 Test the claim that an escalator moves more people when **everyone stands on both
 lanes** than under the usual convention of **standing on one side and walking on
 the other**. For background, see the 2015–16 London Underground trial at Holborn
-station, where standing on both sides moved about 30% more people at peak times.
+station, where the escalator managed as standing-only carried about 27% more people
+in an hour.
 For that trial and other studies, see [RESEARCH.md](RESEARCH.md).
 
 ## Design principles
@@ -27,7 +28,7 @@ For that trial and other studies, see [RESEARCH.md](RESEARCH.md).
 
 - **Command line and experiments:** native Python 3.11. Plotting and analysis
   libraries (matplotlib, pandas) are optional extras, never needed by the engine.
-- **Web interface (later):** a static page (HTML, JS and canvas) that loads the
+- **Web interface:** a static page (HTML, JS and canvas) that loads the
   `escalator_sim` package into Pyodide, which is CPython compiled to WebAssembly.
   The page calls `step()` and `snapshot()` directly. Everything runs on the user's
   machine, so no server is needed and the page can be hosted as a static site
@@ -37,7 +38,7 @@ For that trial and other studies, see [RESEARCH.md](RESEARCH.md).
 
 | Option | How the web version works | Pros | Cons |
 |---|---|---|---|
-| **A. Python engine + Pyodide** ✅ | Engine runs in the browser through WebAssembly; JS draws the interface | One engine. Python analysis tools for the experiments. No server | About 10 MB download and a few seconds to start. Small overhead on calls between JS and Python |
+| **A. Python engine + Pyodide** ✅ | Engine runs in the browser through WebAssembly; JS draws the interface | One engine. Python analysis tools for the experiments. No server | About 12 MB download and a few seconds to start. Small overhead on calls between JS and Python |
 | B. Python engine on a server | FastAPI or similar streams snapshots to the browser over WebSockets | Plain Python everywhere | Needs hosting and a running server. Network delay on every frame. Every viewer uses server CPU |
 | C. TypeScript engine | Runs natively in the browser; the command line runs on Node | Fastest and smallest in the browser. One language | Weaker tools for statistics and plotting |
 | D. Python batch runs + recorded replays | Python writes a JSON trace; a static page plays it back | Very simple | No live sliders. Can only watch runs recorded beforehand |
@@ -72,7 +73,7 @@ the web version becomes the main product and fast page loads matter.
 ### Crowd
 | Parameter | Meaning | Default |
 |---|---|---|
-| `arrival_rate` | Arrival rate (people/min, Poisson) for rush hour vs off-peak | 120 |
+| `arrival_rate` | Arrival rate (people/min, each arriving at a random time) for rush hour vs off-peak | 120 |
 | `walk_fraction` | Share of people who *want* to walk | 0.25 |
 | `walk_speed_mean` / `_sd` | Walking speed relative to the belt (m/s), varied per person | 0.7 / 0.15 |
 
@@ -117,9 +118,10 @@ the web version becomes the main product and fast page loads matter.
 ## Metrics
 
 Metrics are measured after the warm-up period:
-- Throughput (people/min), both total and per lane.
+- People per minute reaching the top, both total and per lane.
 - Queue wait: mean, 95th percentile and maximum.
-- Total time from arrival to reaching the top: mean and 95th percentile.
+- Total time from arrival to reaching the top: mean and 95th percentile, also
+  split into people who want to walk and everyone else.
 - Longest queue reached, and the share of people who walked.
 
 ## Code layout
@@ -139,7 +141,7 @@ escalator_sim/
 tests/           # unittest (pytest is not installed)
 ```
 
-### Engine API (shared by the command line and the future GUI)
+### Engine API (shared by the command line and the web interface)
 ```python
 sim = Simulation(config, strategy="walk-left", seed=1)
 sim.step()             # advance one time step
@@ -155,7 +157,7 @@ python3 -m escalator_sim run      --strategy walk-left --arrival-rate 120 --walk
 python3 -m escalator_sim compare  --replications 20          # all strategies, same seeds
 python3 -m escalator_sim sweep    --param walk_fraction --values 0,0.1,0.2,0.4 --replications 10
 ```
-Results print as text tables, with optional `--json` / `--csv` export.
+Results print as text tables, or as JSON or CSV with `--output json|csv`.
 
 ## Milestones
 
@@ -166,7 +168,11 @@ Results print as text tables, with optional `--json` / `--csv` export.
    walk fraction, rise).
 4. *(Partly done)* Check the results against measured data. `walk_gap` is fitted to Davis &
    Dutta (2002) and pinned by `tests/test_calibration.py`. The 2015 Holborn trial's 81 vs 112.5
-   ppm were pre-trial calculations, not measurements. Still guessed: walking speeds, defection.
-5. *(Planned)* A static web front end: Pyodide loads `escalator_sim`, a JS canvas
+   ppm were pre-trial calculations, not measurements. The findings also fit `stand_gap` to
+   Davis & Dutta at Holborn's height (0.74 m). Still guessed: walking speeds, defection.
+5. ✅ A static web front end: Pyodide loads `escalator_sim`, a JS canvas
    draws `snapshot()`, and sliders set the parameters. See [GUI_PLAN.md](GUI_PLAN.md).
-6. *(Later)* Mixed or adaptive strategies, and boarding-time distributions.
+   Some polish is still open there.
+6. ✅ Time saved for people who want to walk. See [TIME_SAVED_PLAN.md](TIME_SAVED_PLAN.md)
+   and [FINDINGS.md](FINDINGS.md).
+7. *(Later)* Mixed or adaptive strategies, and boarding-time distributions.

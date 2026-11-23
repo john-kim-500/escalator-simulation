@@ -2,7 +2,7 @@
 
 Run from the project folder:
 
-    python3 -m docs.findings              # full run, about 3 minutes on 16 cores
+    python3 -m docs.findings              # full run, about 10 minutes on 16 cores
     python3 -m docs.findings --quick      # short runs and 2 seeds, to check it works
 
 Prints Markdown. Each table compares stand-both with walk-left on the same
@@ -23,14 +23,19 @@ from escalator_sim.report import time_winner, winner
 
 STRATEGIES = ["stand-both", "walk-left"]
 
-# Main settings, tables 1-6. All values are from Davis & Dutta (2002), who counted Holborn's
-# escalators 4-7: rise 23.4 m (their Holborn 5, 23.39 m; one of a pair); belt speed and step
-# depth as they measured; walk_gap fitted to their walking-side formula; 45% walk, from their
-# formulas (47.4 walking, 58.4 standing per minute); no lane switching, since their formulas
-# count lanes as observed. See tests/test_calibration.py. (The same escalators were later used
-# for the 2015 trial.)
+# Davis & Dutta (2002) standing-side formula at 23.4 m: 41.27 + 0.73 x 23.4 = 58.4 per minute.
+# At 0.72 m/s that is 0.74 m per stander. Their count rises with height (people squeeze in from
+# the walking line), so this fits Holborn only; the engine's 0.8 m default (54/min) stays.
+DAVIS_DUTTA_2002_STAND_GAP = 0.72 * 60 / (41.27 + 0.73 * 23.4)
+# Main settings, tables 1-6 and 9. All values are from Davis & Dutta (2002), who counted
+# Holborn's escalators 4-7: rise 23.4 m (their Holborn 5, 23.39 m; one of a pair); belt speed
+# and step depth as they measured; walk_gap fitted to their walking-side formula; stand_gap
+# fitted to their standing-side formula; 45% walk, from their formulas (47.4 walking, 58.4
+# standing per minute); no lane switching, since their formulas count lanes as observed. See
+# tests/test_calibration.py. (The same escalators were later used for the 2015 trial.)
 DAVIS_DUTTA_2002_HOLBORN = dict(
-    rise=23.4, belt_speed=0.72, step_depth=0.4, walk_gap=0.9, walk_fraction=0.45,
+    rise=23.4, belt_speed=0.72, step_depth=0.4, walk_gap=0.9,
+    stand_gap=round(DAVIS_DUTTA_2002_STAND_GAP, 3), walk_fraction=0.45,
     defect_prob=0.0, blocker_rate=0.0, warmup=180.0, duration=900.0, drain=1,
 )
 # --quick: still longer than one ride (65 s) and two rides measured.
@@ -46,22 +51,23 @@ GRID_BLOCKERS = [0.0, 0.02, 0.05]
 DAVIS_DUTTA_2002_WALKERS_PER_MIN = 83.49 - 1.20 * 23.4 - 8.05
 DAVIS_DUTTA_2002_CAPPED_ARRIVALS = [110, 120, 130, 140, 150]
 # Table 7. Filippidis et al. (2025), Safety Science 196, 107064: their escalator, walker share
-# and spacing (two empty steps for walkers), to see how much of their larger gain settings
-# explain. Everything else stays as in DAVIS_DUTTA_2002_HOLBORN.
-FILIPPIDIS_2025 = dict(rise=23.75, belt_speed=0.75, walk_gap=1.2, walk_fraction=0.40)
+# and spacing (one empty step for standers, two for walkers), to see how much of their larger
+# gain settings explain. Everything else stays as in DAVIS_DUTTA_2002_HOLBORN.
+FILIPPIDIS_2025 = dict(rise=23.75, belt_speed=0.75, stand_gap=0.8, walk_gap=1.2,
+                       walk_fraction=0.40)
 FILIPPIDIS_2025_ARRIVALS = [40, 70, 90, 100, 120]
-# Tables 8-9 double-check two small effects, so they use more crowds than -n, and compare the
-# same crowds directly (paired) to see small differences. Table 8: does walk-left still win at
-# 55-60% walkers once the standing lane carries what Davis & Dutta counted at 23.4 m
-# (41.27 + 0.73 x 23.4 = 58.4/min, not the model's 54)?
-DAVIS_DUTTA_2002_STAND_GAP = 0.72 * 60 / (41.27 + 0.73 * 23.4)
-STAND_GAPS = [0.8, DAVIS_DUTTA_2002_STAND_GAP]
+# Tables 8-9 double-check two small effects and compare the same crowds directly (paired) to
+# see small differences. Table 8: how much does walk-left at 45-65% walkers depend on the
+# standing lane (the engine's default 0.8 m against Davis & Dutta's 0.74 m)?
+STAND_GAPS = [0.8, DAVIS_DUTTA_2002_HOLBORN["stand_gap"]]
 CHECK_WALK_SHARES = [0.45, 0.5, 0.55, 0.6, 0.65]
-CHECK_WALK_REPLICATIONS = 100
-# Table 9: do 1-2% blockers really add people per minute under walk-left?
+# Table 9: do 1-2% blockers really add people per minute under walk-left? Small effect, so
+# more crowds than the other tables.
 CHECK_BLOCKER_ARRIVALS = [100, 110, 120]
 CHECK_BLOCKERS = [0.0, 0.01, 0.02, 0.05]
 CHECK_BLOCKER_REPLICATIONS = 200
+# Table 10: how much the main answer depends on how closely people stand.
+CHECK_LANE_ARRIVALS = [90, 100, 110, 120]
 
 # (heading, swept parameter, its values, fixed settings)
 SWEEPS: list[tuple[str, str, list[float], dict[str, float]]] = [
@@ -152,7 +158,7 @@ def _lane_label(gap: float, belt_speed: float) -> str:
 def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
     out = out or sys.stdout
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--replications", "-n", type=int, default=20)
+    parser.add_argument("--replications", "-n", type=int, default=100)
     parser.add_argument("--jobs", "-j", type=int, default=0, help="0 = all CPUs [0]")
     parser.add_argument("--quick", action="store_true", help="short runs, 2 seeds")
     args = parser.parse_args(argv)
@@ -199,11 +205,10 @@ def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
         out.write(f"\n### {len(SWEEPS) + 3}. With Filippidis et al.'s settings ({shown}), "
                   f"no blockers\n\n{table(['arrival_rate', *HEADERS], rows)}\n")
 
-        reps_walk = 2 if args.quick else CHECK_WALK_REPLICATIONS
         rows = []
         for gap in STAND_GAPS:
             config = base.with_changes(stand_gap=gap, arrival_rate=110)
-            points = sweep(config, "walk_fraction", CHECK_WALK_SHARES, STRATEGIES, reps_walk,
+            points = sweep(config, "walk_fraction", CHECK_WALK_SHARES, STRATEGIES, reps,
                            map_fn=map_fn)["points"]
             for p in points:
                 sb, wl = (p["strategies"][s] for s in STRATEGIES)
@@ -218,7 +223,7 @@ def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
                    "walk-left people/min", "Walk-left extra people/min, same crowds",
                    "Walkers save s", "Others save s"]
         out.write(f"\n### {len(SWEEPS) + 4}. Share who want to walk, at 110 arrivals/min, "
-                  f"with the standing lane matched to Davis & Dutta; {reps_walk} seeds\n\n"
+                  f"with the engine's default standing lane and Davis & Dutta's\n\n"
                   f"{table(headers, rows)}\n")
 
         reps_block = 2 if args.quick else CHECK_BLOCKER_REPLICATIONS
@@ -242,6 +247,15 @@ def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
                    "standing lane people/min"]
         out.write(f"\n### {len(SWEEPS) + 5}. A few blockers, walk-left only; {reps_block} "
                   f"seeds\n\n{table(headers, rows)}\n")
+
+        rows = []
+        for gap in STAND_GAPS:
+            for p in run("arrival_rate", CHECK_LANE_ARRIVALS, {"stand_gap": gap}):
+                rows.append([f"{p['value']:g}", _lane_label(gap, base.belt_speed), *row(p)])
+        rows.sort(key=lambda r: (float(r[0]), r[1]))
+        out.write(f"\n### {len(SWEEPS) + 6}. How busy it is, with the engine's default standing "
+                  f"lane and Davis & Dutta's\n\n"
+                  f"{table(['arrival_rate', 'standing lane', *HEADERS], rows)}\n")
     finally:
         if pool:
             pool.shutdown()

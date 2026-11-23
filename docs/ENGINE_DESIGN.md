@@ -324,4 +324,12 @@ in place; the points below are still open.
 - Is it worth separating the measuring code now that the "walkers vs.
   everyone else" trip times are in `summarize()`?
 - Should the stepping-on simplification for walkers be fixed? It slightly
-  reduces the time walkers save, which is exactly what this branch measures.
+  reduces the time walkers save, which is exactly what
+  [FINDINGS.md](FINDINGS.md) measures.
+- **Follow-up: should walkers be able to overtake?** Nobody passes anyone, so
+  one blocker or slow walker holds up every walker behind them for the whole
+  ride. That's why a few blockers cancel walk-left's benefit in
+  [FINDINGS.md](FINDINGS.md), which likely overstates the harm. Filippidis et
+  al. (2025) let walkers step into the right lane to pass when there's room.
+  Not planned yet. If added, the drain needs rechecking: it relies on later
+  arrivals never changing an earlier person's trip.

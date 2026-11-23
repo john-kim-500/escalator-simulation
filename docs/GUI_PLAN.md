@@ -44,8 +44,9 @@ and any backend.
   no build step. The one library is **Chart.js**, at a pinned version from
   jsDelivr, for the experiment charts. The live chart is simple enough to draw
   directly on canvas.
-- **The Pyodide version is pinned** to an exact release chosen when this is
-  built. Pyodide 0.26+ ships Python 3.12, and the engine needs 3.10+.
+- **The Pyodide version is pinned** to an exact release: `PYODIDE_VERSION` in
+  `engine-core.js` and the `pyodide` dev dependency in `package.json`. The
+  pinned 314.0.7 ships Python 3.14; the engine needs 3.10+.
 
 ### Files
 
@@ -53,24 +54,31 @@ and any backend.
 web/
   index.html          # layout, loading screen
   style.css           # light/dark theme tokens, responsive layout
-  app.js              # app state, view switching, URL state
-  sim-worker.js       # loads Pyodide + escalator_sim, implements the protocol
+  app.js              # app state, view switching
+  sim-worker.js       # the worker: implements the protocol
+  engine-core.js      # loads Pyodide + escalator_sim; shared with the Node tests
   worker-client.js    # promise-based wrapper around postMessage
-  config-panel.js     # builds controls from PARAM_INFO; presets; validation messages
+  config-panel.js     # builds controls from PARAM_INFO; validation messages
   live-view.js        # animation loop, playback controls
   escalator-canvas.js # draws one strategy's escalator from a snapshot
   live-chart.js       # people-at-the-top-over-time chart (canvas)
   experiments-view.js # compare/sweep forms, progress, tables, downloads
   experiment-charts.js # Chart.js loader, bar charts with error bars, sweep bands
   experiment-util.js  # pure helpers: sweep ranges, time left, formatting
+  format.js           # pure helpers: number and time formatting
+  canvas-util.js      # canvas sizing and theme colors
   dom.js              # tiny element-building helper shared by the views
   manifest.json       # list of escalator_sim/*.py files for the worker to load
 tests/
   test_web_support.py # engine additions + manifest matches the package
-web/tests/            # node --test unit tests for pure JS (URL state, scaling, formatting)
+web/tests/            # node --test: the engine in Pyodide, and the pure JS helpers
 ```
 
 ### Messages between the page and the worker
+
+This was the first design. The protocol as built (`info`, `check`, `live.*`,
+`exp.run`, `exp.cancel`, with experiments run in time slices) is in
+[APP_DESIGN.md](APP_DESIGN.md#the-worker-protocol).
 
 | Request | Reply | Purpose |
 |---|---|---|
@@ -87,7 +95,7 @@ message.
 
 ## Changes needed in the engine
 
-These are small additions that keep to the engine rules in PLAN.md: standard
+All done (milestone 1). These are small additions that keep to the engine rules in PLAN.md: standard
 library only, plain data, no I/O. Each comes with unit tests.
 
 1. **Parameter details in `config.py`: `PARAM_INFO`.** For each parameter: its
@@ -107,7 +115,7 @@ library only, plain data, no I/O. Each comes with unit tests.
    lengths, and average wait so far. Calling `results()` every frame would
    re-scan everyone.
 5. **Experiments that can be split up.** Split `compare`/`sweep` into
-   `plan_*() → jobs`, `run_one(job)` and `collect_*(jobs, runs)`. The command
+   `plan_*() → jobs`, `run_one(job)` and `collect(plan, runs)`. The command
    line keeps calling `compare()`/`sweep()`, which use these internally. The
    worker calls the pieces one job at a time, which is what makes progress and
    canceling possible.
@@ -204,7 +212,7 @@ These are estimates to check during milestone 2.
   runs, roughly 20–40 s in a single worker. The progress bar makes that
   bearable. If it turns out too slow, a pool of workers is the follow-up (see
   milestone 6), at a cost of about 50–100 MB of memory per worker.
-- **First load:** Pyodide is about 10 MB, and the browser keeps it cached after
+- **First load:** Pyodide is about 12 MB, and the browser keeps it cached after
   the first visit. A loading screen shows progress.
 
 ## Running and hosting
@@ -217,9 +225,8 @@ These are estimates to check during milestone 2.
   - It needs internet access for the Pyodide and Chart.js downloads, unless they
     are bundled into the repo later.
 - **GitHub Pages (optional):** a small GitHub Actions workflow could publish
-  `web/` and `escalator_sim/`. **Note:** the repository is private, and Pages
-  for private repos needs a paid GitHub plan. Otherwise it stays local-only, or
-  the repo is made public.
+  `web/` and `escalator_sim/`. The repository is now public, so Pages needs
+  no paid plan.
 
 ## Testing
 
@@ -228,8 +235,9 @@ These are estimates to check during milestone 2.
   queue limit, `live_stats()`, and splitting experiments into jobs (the result
   must match `compare()`/`sweep()` exactly). A test also checks that
   `web/manifest.json` lists every file in `escalator_sim/`.
-- **JavaScript:** `node --test` for the pure functions: URL encoding of
-  settings, coordinate scaling, number formatting and sweep-range parsing.
+- **JavaScript:** `node --test` for the pure functions (coordinate scaling,
+  number formatting and sweep-range parsing), and the engine itself in Pyodide
+  under Node, checked against native Python.
 - **In the browser:** a short manual checklist per milestone: it loads, runs
   both strategies, the numbers match the command line for the same seed,
   canceling works, and the layout works at phone width and in light and dark
@@ -252,8 +260,9 @@ These are estimates to check during milestone 2.
 4. ✅ **Experiments view** *(built and tested in Node and jsdom; not yet checked in a real browser)*:
    compare and sweep with progress and cancel, tables, charts, CSV/JSON
    download, and "Watch this scenario".
-5. **Polish:** presets, settings kept in the URL, phone-width layout, dark mode,
-   keyboard controls, and a short "how to read this" help panel.
+5. *(Partly done)* **Polish:** presets, settings kept in the URL, phone-width layout, dark mode,
+   keyboard controls, and a short "how to read this" help panel. Done so far: phone-width
+   layout, dark mode, and **Space** for play/pause.
 6. *(Optional)* A pool of workers for faster sweeps, bundling Pyodide for
    offline use, and the GitHub Pages workflow.
 
@@ -263,7 +272,7 @@ Confirmed on 2026-11-20.
 
 | Question | Decision |
 |---|---|
-| Where it runs | Locally with `http.server` for now. GitHub Pages only if you upgrade your plan or make the repo public |
+| Where it runs | Locally with `http.server` for now. GitHub Pages only if you upgrade your plan or make the repo public (the repo is now public, so Pages is possible) |
 | Drawing style | Top-down view of the lanes, clearest for two lanes. A decorative side view could come later |
 | Live view default | Both strategies side by side on the same crowd |
 | Front end | Plain JS with no build step, plus Chart.js for experiment charts. Move to a framework only if the UI grows a lot |

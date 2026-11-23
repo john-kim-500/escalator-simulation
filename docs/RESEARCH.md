@@ -40,10 +40,11 @@ short escalators, a walking lane can be as good or better.
 
 **Where they are silent:** no study found so far *measures* how much time
 walkers save. Filippidis et al. *simulate* it (about 30 s on a 24 m
-escalator), which matches this simulation's 29 s. Davis & Dutta and the Holborn trial show that walkers care about
+escalator), which matches this simulation's 28 s. Davis & Dutta and the Holborn trial show that walkers care about
 time, but neither puts a number on it (see "Walkers' time" in each entry). Few
 studies look at how well people keep to a rule over time. Both matter for
-this project's `feature/time-saved` work and for the rule-breaking settings
+this project's time-saved work ([TIME_SAVED_PLAN.md](TIME_SAVED_PLAN.md)) and for the
+rule-breaking settings
 (`defect_threshold`, `defect_prob`, `blocker_rate`).
 
 ## Studies used in the code
@@ -85,7 +86,9 @@ formulas by several people per minute.
 
 **Known mismatch:** in the paper, the standing side carries more people on
 taller escalators (people squeeze in from the walking line). The simulation's
-standing side carries a fixed number, so it is about 7% low at 23 m.
+standing side carries a fixed number, so with the default spacing (0.8 m) it is
+about 7% low at 23 m. [FINDINGS.md](FINDINGS.md) sets the spacing to 0.74 m, which
+matches the formula at Holborn's height.
 
 **Their own Holborn experiment (section 8.1):** Holborn already asked people
 to stand on both sides of the up escalators when busy. With the supervisor's
@@ -210,7 +213,7 @@ lanes.
   walking lane.** The benefit to individuals and the benefit to everyone can
   point in opposite directions.
 
-**Use in this project:** the last point is what `feature/time-saved` sets out
+**Use in this project:** the last point is what the time-saved work sets out
 to measure (time saved by people who want to walk, against the cost to everyone
 else). The share of people who want to walk (`walk_fraction`) should matter a
 lot; this project's sweeps can check that.
@@ -328,15 +331,16 @@ of 0.5 m squares.
   100–110 in this simulation. See
   [FINDINGS.md](FINDINGS.md#against-another-model).
 - **Walkers save about 30 s** in both models.
-- **Everyone standing gains much more there** (19–39%, against 4–7% here).
-  Their walk-left carries far fewer people at the peak. Likely reasons:
-  - their wider walker spacing (1.2 m, against 0.9 m here, fitted to Davis &
-    Dutta);
+- **Everyone standing gains much more there** (19–39%, against 2.5–11% here).
+  Their walk-left carries far fewer people at the peak. Their settings, such
+  as the wider walker spacing (1.2 m, against 0.9 m here), explain little of
+  this: with them, this simulation's gain is still at most 8%. More likely
+  reasons:
   - the crowd at the bottom slowing everyone's boarding;
   - an underused walk lane.
 
-  This simulation's walk-left is closer to Davis & Dutta's measured total at
-  this height (about 106 per minute).
+  This simulation's walk-left matches Davis & Dutta's measured total at this
+  height (about 106 per minute), as it's fitted to their counts.
 - **Things their model has and this one doesn't:**
   - overtaking;
   - blockers who appear only when it's crowded;
@@ -359,10 +363,9 @@ Questions the studies raise that this simulation could help answer:
    experience suggests people drift back to walking.
 4. **Does the simulation agree with Filippidis et al.?** On the direction and
    on walkers' time saved, yes; on how much more everyone standing carries,
-   no (19–39% there, 4–7% here). See
-   [FINDINGS.md](FINDINGS.md#against-another-model). Running this
-   simulation with their settings (40% walkers, 1.2 m walker spacing, 0.75 m/s)
-   would show how much of the gap the settings explain.
+   no (19–39% there, 2.5–11% here). Running this simulation with their
+   settings (40% walkers, 1.2 m walker spacing, 0.75 m/s) closes little of the
+   gap. See [FINDINGS.md](FINDINGS.md#against-another-model).
 
 ## Adding a study
 

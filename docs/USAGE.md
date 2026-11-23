@@ -95,7 +95,7 @@ python3 -m escalator_sim run --strategy stand-both --seed 1
 | `--seed INT` | `1` | Random seed. The same seed always gives the same crowd and the same result |
 | `--output table\|json\|csv` | `table` | Output format |
 
-Besides the summary, this prints the throughput of each lane and how many people
+Besides the summary, this prints people per minute in each lane and how many people
 arrived and finished. Use it to look at a single scenario closely. A single run
 is noisy, so use `compare` to draw conclusions.
 
@@ -125,12 +125,12 @@ python3 -m escalator_sim sweep --param arrival_rate --values 60,90,120,150 -n 10
 ```
 
 ```
-arrival_rate  stand-both thru/min  walk-left thru/min  stand-both wait s  walk-left wait s  Most throughput
-------------  -------------------  ------------------  -----------------  ----------------  ---------------
-60            58.3 ±1.6            58.2 ±1.7           0.3 ±0.0           1.3 ±0.3          tie
-90            88.6 ±2.5            88.9 ±2.5           1.1 ±0.2           6.8 ±0.5          tie
-120           112.2 ±0.4           111.1 ±0.7          21.9 ±6.2          28.8 ±4.8         tie
-150           112.5 ±0.0           113.9 ±0.8          87.4 ±5.8          84.3 ±6.0         walk-left
+arrival_rate  stand-both thru/min  walk-left thru/min  stand-both wait s  walk-left wait s  Most throughput  Walkers save s (walk-left)  Fastest for walkers
+------------  -------------------  ------------------  -----------------  ----------------  ---------------  --------------------------  -------------------
+60            59.2 ±2.4            59.2 ±2.3           0.3 ±0.0           1.6 ±0.4          tie              18.7 ±0.3                   walk-left
+90            89.6 ±2.8            89.7 ±2.7           1.2 ±0.2           6.9 ±1.0          tie              18.3 ±0.3                   walk-left
+120           112.2 ±0.5           112.8 ±1.0          26.4 ±7.4          31.4 ±8.0         tie              41.7 ±7.4                   walk-left
+150           112.5 ±0.0           126.8 ±1.1          118.7 ±7.9         83.8 ±9.4         walk-left        129.5 ±8.9                  walk-left
 ```
 
 | Option | Default | Meaning |
@@ -138,6 +138,9 @@ arrival_rate  stand-both thru/min  walk-left thru/min  stand-both wait s  walk-l
 | `--param NAME` | *(required)* | Any parameter name from the [table below](#parameters), with underscores, e.g. `walk_fraction` |
 | `--values LIST` | *(required)* | Comma-separated numbers, e.g. `0,0.1,0.25` |
 | `--strategies`, `-n`, `--seed`, `-j`, `--output` | | Same as `compare` (`-n` defaults to `5` here) |
+
+The last two columns are the time saved for walkers under `walk-left` and which
+strategy is faster for them (see [Time saved for walkers](#time-saved-for-walkers)).
 
 The other parameters keep their defaults unless you set them, e.g.
 `sweep --param walk_fraction --values 0,0.5 --defect-prob 0`.
@@ -169,7 +172,7 @@ Distances are in meters along the incline, times in seconds and speeds in m/s.
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `--arrival-rate` | 120 | Arrivals per minute, at random intervals (a Poisson process) |
+| `--arrival-rate` | 120 | Arrivals per minute. Each person arrives at a random time, independently of the others |
 | `--walk-fraction` | 0.25 | Share of people who *want* to walk (0–1) |
 | `--walk-speed-mean` | 0.7 | Average walking speed on top of the belt speed |
 | `--walk-speed-sd` | 0.15 | Spread of walking speeds between people (standard deviation) |
@@ -203,9 +206,10 @@ These set each lane's capacity. A full standing lane carries
 | `--dt` | 0.1 | Time step. Smaller values are slightly more precise and slower |
 | `--drain` | 1 | Finishes the line: after the run ends, nobody new arrives and the run keeps going until everyone measured reaches the top, so waits and trip times are complete. `0` stops at `--duration` instead. See [Finishing the line](#finishing-the-line) |
 
-> **The defaults are guesses.** The spacing, walking speed and lane-switching
-> values strongly affect the result and have not yet been checked against real
-> observations. Treat the results as "what happens if people behave like this"
+> **Most defaults are guesses.** Only `walk_gap` is fitted to real counts (Davis &
+> Dutta 2002). The standing spacing, walking speeds and lane-switching values
+> strongly affect the result and haven't been checked against real observations;
+> [FINDINGS.md](FINDINGS.md) fits `stand_gap` for one escalator height only. Treat the results as "what happens if people behave like this"
 > and sweep the uncertain parameters rather than relying on one setting.
 
 ## Reading the results
@@ -246,9 +250,9 @@ Fastest for walkers: walk-left
 
 Things to keep in mind:
 
-- **Throughput only differs when the escalator is overloaded.** If people arrive
-  more slowly than the escalator can carry them, both strategies carry everyone
-  and throughput simply equals the arrival rate. The strategies then differ only
+- **People per minute only differs when the escalator is overloaded.** If people
+  arrive more slowly than the escalator can carry them, both strategies carry
+  everyone, and people per minute simply equals the arrival rate. The strategies then differ only
   in waiting time. To test the theory, use rush-hour arrival rates, where
   **Queue end** is large.
 - **Under overload, waits and trips grow with the run length.** A large and
@@ -397,7 +401,7 @@ settings on the left. The animation pauses while Experiments is showing.
 | Settings (left; below the animation on phones) | Every parameter, with its unit, a slider and help text. Changes are checked and restart the run after a short pause. Errors appear next to the field. The gray box shows calculated values: escalator length, ride time and lane capacities |
 | Controls | Play/Pause (**Space**), Step +1 s, Restart, and speed (1×–50×). Tick or untick strategies. **Seed** picks the crowd, and **New crowd** picks a random seed |
 | Escalators | One per strategy, seen from above, with the top of the escalator at the top. Every strategy gets the same crowd. Shapes show who is who: ● standing, ▲ walking, ◆ a stander who switched to walking, ■ standing in the walk lane. The queue is below each lane; a number like `97 (+57)` means 97 are queueing and 57 of them didn't fit in the drawing |
-| Live numbers | People at the top, throughput over the last 60 s, queue per lane, average wait so far, walkers' and others' average trip so far, and share walking |
+| Live numbers | People at the top, people per minute over the last 60 s, queue per lane, average wait so far, walkers' and others' average trip so far, and share walking |
 | People at the top | A chart of how many people have reached the top over time, per strategy. The dashed line is everyone who has arrived. The shaded area is the warm-up |
 | Results | When the run finishes, the same metrics as `run`, measured after the warm-up, side by side. With two strategies, a line gives the time saved for walkers and others on this crowd (needs **Finish the line** at 1, the default) |
 
@@ -412,8 +416,8 @@ Experiments (or `compare`) for conclusions over many crowds.
 | Strategies, Replications, First seed | Like `--strategies`, `-n` and `--seed`. The defaults are the command line's: 10 replications for Compare and 5 for Sweep. The line below the form says how many runs that is |
 | Setting to vary (Sweep only) | Any parameter. Enter the values as a **Range** (from, to, step) or a **List** such as `0, 0.1, 0.25`. Up to 50 values. The swept values replace that setting from the panel on the left |
 | Run / Cancel | A progress bar shows the runs done and the estimated time left. Cancel stops after the current slice of runs |
-| Results | The command line's table, with mean ±95% margin of error. Compare adds the percentage difference and whether the throughput lead is bigger than the margins of error. Sweep shows the leader at each value, or `tie`, using the command line's rule. Both also show the time saved for walkers and the **Fastest for walkers** (see [Time saved for walkers](#time-saved-for-walkers)). With **Finish the line** at 0, a hint replaces them |
-| Charts | Compare: throughput and average wait per strategy, with error bars. Sweep: throughput and average wait against the swept value, with a shaded band for the margin of error. A third chart shows the time saved per trip for walkers and others; below zero means they lose time. It's left out with **Finish the line** at 0 |
+| Results | The command line's table, with mean ±95% margin of error. Compare adds the percentage difference and whether the lead in people per minute is bigger than the margins of error. Sweep shows the leader at each value, or `tie`, using the command line's rule. Both also show the time saved for walkers and the **Fastest for walkers** (see [Time saved for walkers](#time-saved-for-walkers)). With **Finish the line** at 0, a hint replaces them |
+| Charts | Compare: people per minute and average wait per strategy, with error bars. Sweep: people per minute and average wait against the swept value, with a shaded band for the margin of error. A third chart shows the time saved per trip for walkers and others; below zero means they lose time. It's left out with **Finish the line** at 0 |
 | Download CSV / JSON | Exactly what `--output csv` / `--output json` prints for the same experiment, so files from either can be analyzed the same way |
 | Watch this scenario | Opens the live view with that result's settings and its first seed. In a sweep, each row has its own **Watch** button |
 
@@ -455,8 +459,9 @@ taller = config.with_changes(rise=24, warmup=180, duration=900)
 ```text
 { time, length, belt_speed, step_depth, strategy, arrived, finished,
   lanes: [ { index,
-             people: [ {id, lane, pos, speed, walking, wants_to_walk}, ... ],   # on the belt, top first
-             queue:  [ ...same fields... ] } ] }                                 # waiting, front first
+             people: [ {id, kind, lane, pos, speed, walking, wants_to_walk}, ... ],  # on the belt, top first
+             queue:  [ ...same fields... ],                                      # waiting, front first
+             queue_length } ] }                                                  # whole line, even if cut
 ```
 
 `pos` is meters from the bottom along the incline, from 0 to `length`.

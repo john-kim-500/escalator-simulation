@@ -16,8 +16,8 @@ much time does each strategy save them?** It builds on the model in
 3. **Count everyone who arrives:** nobody who arrives during the measured
    window is left out because the run ended before they reached the top.
 4. **Show it everywhere:** CLI tables, CSV/JSON, and the GUI's live and
-   experiments views, with a "most time saved" winner beside the throughput
-   winner.
+   experiments views, with a "Fastest for walkers" winner beside the
+   people-per-minute winner.
 
 **Not in this plan:** overtaking in the walk lane, mixed queues at the bottom
 (the model still has one queue per lane), and costs such as safety or comfort.
@@ -136,12 +136,13 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
 - **CSV/JSON (`report.py`):** the new per-run fields as columns, plus the
   `time_saved` summary in JSON. ✅ The GUI downloads stay identical to the CLI
   output, because both use `report.py`.
-- **GUI experiments view:**
+- **GUI experiments view:** ✅
   - The new rows in the results table.
   - A "Time saved" chart: per-person saving against the swept value, with
     error bars.
-  - The "most time saved" winner shown next to the throughput winner.
-- **GUI live view:**
+  - The "Fastest for walkers" winner shown next to the people-per-minute
+    winner.
+- **GUI live view:** ✅
   - "Average trip so far" for each group in the stats table, from new
     running counters in `live_stats()`.
   - A time-saved row in the final results when exactly two strategies are
@@ -208,10 +209,11 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
   The findings show blockers can decide the result, so overtaking (or walkers
   stepping around blockers) deserves its own plan. Filippidis et al. (2025)
   let walkers overtake through the right lane when there's room.
+  Now a follow-up question in [ENGINE_DESIGN.md](ENGINE_DESIGN.md#open-questions).
 - **The crowd at the bottom:** Filippidis et al. find that people choosing a
   lane in a crowd slow everyone's boarding, and that standers end up in the
   walk lane once it's crowded. Their walk-left carries 71–80 per minute at the
-  peak, against about 101 here ([findings](FINDINGS.md#against-another-model)).
+  peak, against about 106 here ([findings](FINDINGS.md#against-another-model)).
   Should boarding slow down, and `blocker_rate` rise, as the line grows?
 - **How many people walk at the peak:** a fixed `walk_fraction` lets more
   people walk than Davis & Dutta saw at Holborn's height once more than about
