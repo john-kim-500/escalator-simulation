@@ -54,6 +54,77 @@ The simulation moves forward in small, fixed slices of time (the `dt` setting,
    stepping on see the space that has just opened up.
 3. **Record line lengths** (after the warm-up period only).
 
+The diagram below shows one step in full. "Running totals" is drawn
+separately to show which moments produce measurements, although in the code
+the totals are kept inside the simulation itself.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant R as Whoever runs it<br/>(command line, experiments, browser)
+    participant S as Simulation
+    participant A as Random arrivals
+    participant St as Strategy
+    participant L as Line at the bottom<br/>(one per lane)
+    participant E as Escalator lane<br/>(one per lane)
+    participant T as Running totals
+
+    R->>S: step()
+    Note over S: End of this step = (steps + 1) × dt
+
+    rect rgb(235, 242, 255)
+    Note over S,L: 1. New arrivals
+    loop while the next arrival is before the end of this step
+        S->>A: Wants to walk? How fast?
+        A-->>S: yes or no, walking speed
+        S->>St: Which line, and walk or stand?<br/>(given current line lengths)
+        Note right of St: Uses its own random source,<br/>so the crowd is the same<br/>under every strategy
+        St-->>S: lane, walking
+        S->>St: Label for the animation?
+        St-->>S: stander, walker, defector or blocker
+        S->>L: Join the back of that lane's line
+        S->>A: When does the next person arrive?
+        A-->>S: next arrival time
+    end
+    end
+
+    loop for each lane
+        rect rgb(235, 250, 238)
+        Note over S,E: 2a. Move everyone on the escalator (top first)
+        loop each person, from the top down
+            S->>E: Move at escalator speed (+ walking speed if walking),<br/>no closer than own spacing to the person in front,<br/>never slower than the escalator
+        end
+        opt someone has passed the top
+            E-->>S: Remove them and work out the exact moment they reached the top
+            S->>T: Add to "got off at the top" and the live totals
+        end
+        S->>T: Forget exits older than one minute (for the live display)
+        end
+
+        rect rgb(255, 245, 230)
+        Note over S,E: 2b. Let people step on
+        loop while someone is waiting in this lane's line
+            S->>S: Earliest moment they can step on = latest of<br/>start of step, their arrival,<br/>minimum time since the last person stepped on,<br/>room left by the last person on the escalator
+            alt that moment is within this step
+                L->>E: Step on, already carried part of the way up
+                S->>T: Record when they stepped on and how long they waited
+            else too late for this step
+                Note over L: Stop and try again next step
+            end
+        end
+        end
+    end
+
+    rect rgb(245, 238, 250)
+    Note over S,T: 3. Record line lengths
+    opt warm-up period is over
+        S->>T: Add total and per-lane line lengths
+    end
+    end
+
+    S-->>R: nothing returned, read results with snapshot(), live_stats() or results()
+```
+
 The clock is calculated as "number of steps × `dt`", not by adding `dt` over
 and over. Adding the same small number thousands of times builds up tiny
 rounding errors in the computer's arithmetic; multiplying avoids that.
