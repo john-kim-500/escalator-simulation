@@ -155,10 +155,20 @@ What the model leaves out, and which rule each point likely favors:
 - **How many people block the walk lane has never been counted.** The tables
   show it matters as much as how busy it is. Treat the blocker columns as
   "what if," not as a prediction.
+- **Standing spacing doesn't shrink when it's crowded.** The model carries at
+  most 54 standers per minute per lane, so stand-both tops out at 108 per
+  minute. Real counts went higher: Holborn's highest reading was 141 per minute
+  with nearly everyone standing, and Davis & Dutta saw 75.6 per minute standing
+  in one lane. So the 3–5% stand-both gain in the tables is probably low
+  (favors walk-left).
 - **Boarding doesn't slow when it's crowded at the bottom.** In Filippidis et
   al., the crowd slows boarding, and walk-left carries far fewer people at the
-  peak. Real counts are higher than theirs, so the true effect is probably
-  smaller, but it's missing here (favors walk-left).
+  peak (favors walk-left).
+- **Real counts sit between the two models.** For walk-left, Davis & Dutta
+  measured about 106 per minute at this height: close to this model (101) and
+  well above Filippidis et al. (71–80). For how much more everyone standing
+  carries, the Holborn report counted 27% more people in an hour with everyone
+  standing, closer to Filippidis et al.'s 19–39% than to the 4–7% here.
 - **Arrivals are steady.** Real arrivals come in bursts as trains unload. A
   steady rate for 15 minutes likely overstates how long the line grows near
   capacity, and with it both walkers' savings and standers' losses.
