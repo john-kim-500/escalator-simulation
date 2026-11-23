@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Agent-based simulation testing whether an escalator moves more people when everyone stands on both sides (`stand-both`) than with stand-right/walk-left (`walk-left`). Design rationale is in `docs/PLAN.md`; how the browser GUI and the engine fit together is in `docs/APP_DESIGN.md`; how the engine runs each step is in `docs/ENGINE_DESIGN.md`; the GUI milestone status is in `docs/GUI_PLAN.md`; user-facing docs are in `docs/USAGE.md`; studies and real-world data (with how carefully each has been checked) are in `docs/RESEARCH.md`; the plan for measuring time saved by people who want to walk is in `docs/TIME_SAVED_PLAN.md`. All documentation except this file and `README.md` lives in `docs/`.
+Agent-based simulation testing whether an escalator moves more people when everyone stands on both sides (`stand-both`) than with stand-right/walk-left (`walk-left`). Design rationale is in `docs/PLAN.md`; how the browser GUI and the engine fit together is in `docs/APP_DESIGN.md`; how the engine runs each step is in `docs/ENGINE_DESIGN.md`; the GUI milestone status is in `docs/GUI_PLAN.md`; user-facing docs are in `docs/USAGE.md`; studies and real-world data (with how carefully each has been checked) are in `docs/RESEARCH.md`; the plan for measuring time saved by people who want to walk is in `docs/TIME_SAVED_PLAN.md`, and its results at the Holborn settings are in `docs/FINDINGS.md` (tables made by `docs/findings.py`). All documentation except this file and `README.md` lives in `docs/`.
 
 ## Directives
 
@@ -49,6 +49,7 @@ npm run lint:fix                                               # fix what the ch
 
 python3 -m escalator_sim compare -n 20                         # CLI; see --help on run/compare/sweep
 python3 -m http.server 8000                                    # from repo root, then open http://localhost:8000/web/
+python3 -m docs.findings > findings.md                         # remake the tables in docs/FINDINGS.md (~1 min)
 ```
 
 There is no build step and no automatic formatter. `npm run lint:fix` fixes quotes, import order, `let`/`const` and indentation; fix the rest (mostly long lines and type hints) by hand. The web GUI is plain ES modules served as static files. Style settings live in `pyproject.toml` (Ruff only; it is not a package build file) and `eslint.config.js`.

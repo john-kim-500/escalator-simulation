@@ -46,42 +46,12 @@ much time does each strategy save them?** It builds on the model in
   just between group averages.
 - `blocker_rate` already models don't-care people standing in the walk lane.
 
-## Early numbers (to set direction, not to quote)
+## Early numbers
 
-These were made before the random numbers were keyed by person (`draws.py`),
-so the same seeds now give different crowds and slightly different numbers.
-
-A throwaway script on the Holborn settings, averaged over seeds 1–3:
-- 23.4 m rise, 45% want to walk
-- belt 0.72 m/s, steps 0.4 m
-- 180 s warm-up, 900 s run
-
-Trip time is from arriving at the bottom to reaching the top.
-
-| Arrivals /min | Blockers | Cares: walk-left | Cares: stand-both | **Saved per person** | Don't care: walk-left | Don't care: stand-both |
-|---|---|---|---|---|---|---|
-| 60 | 0% | 36 s | 65 s | **+29 s** | 66 s | 65 s |
-| 90 | 0% | 38 s | 66 s | **+28 s** | 69 s | 66 s |
-| 110 | 0% | 40 s | 82 s | **+42 s** | 71 s | 82 s |
-| 130 | 0% | 57 s | 150 s | **+93 s** | 90 s | 150 s |
-| 60 | 5% | 47 s | 65 s | **+19 s** | 66 s | 65 s |
-| 90 | 5% | 57 s | 66 s | **+9 s** | 68 s | 66 s |
-| 110 | 5% | 95 s | 82 s | **−13 s** | 96 s | 82 s |
-| 130 | 5% | 169 s | 147 s | **−22 s** | 164 s | 147 s |
-
-These numbers leave out everyone who hadn't reached the top when the run
-ended. At 130 arrivals/min that's up to 189 of the "cares" group, and the
-count differs between the strategies, so the overloaded rows are biased.
-Fixing this is step 1 of the plan.
-
-What they suggest:
-- **With no blockers, walk-left saves the "cares" group 30–90 s per trip**,
-  while throughput barely differs between the strategies at these rates.
-- **A few blockers flip the result.** There's no overtaking, so one person
-  standing in the walk lane slows every walker behind them for the whole ride.
-  At 5% blockers and 110+ arrivals/min, stand-both is faster even for the
-  people who want to walk. `blocker_rate` is likely as important as
-  `arrival_rate`, so it should be swept rather than left at its default of 0.
+These have been replaced by [FINDINGS.md](FINDINGS.md). They came from a
+throwaway script that left out everyone who hadn't finished, which biased the
+busiest rows. The direction held up: with no blockers walk-left saves walkers
+time, and a few blockers flip the result.
 
 ## Changes needed in the engine
 
@@ -221,8 +191,9 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
    CSV/JSON. The "Fastest for walkers" winner rule. Hidden with `--drain 0`.
 3. ✅ **GUI:** experiments table rows, the time-saved chart and winner, and the
    live-view stats. Shown when "Finish the line" is 1, with a hint otherwise.
-4. **Write-up:** run the sweeps above at the Holborn settings and record the
+4. ✅ **Write-up:** run the sweeps above at the Holborn settings and record the
    findings, including the throughput and time-saved figures side by side.
+   See [FINDINGS.md](FINDINGS.md); `python3 -m docs.findings` makes the tables.
 
 ## Open questions
 
@@ -231,7 +202,12 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
   That's fine on the CLI, but heavy for the GUI with many replications.
 - **Default `blocker_rate`:** should it stay at 0, or move to an observed
   value? It matters a lot here, so it needs a source, like the
-  [walk_gap calibration](../tests/test_calibration.py) had.
+  [walk_gap calibration](../tests/test_calibration.py) had. The findings
+  confirm it: 2–5% blockers change the answer as much as how busy it is.
 - **Overtaking:** the model has none, which is what makes blockers so costly.
-  If the blocker results turn out to drive the conclusion, overtaking (or
-  walkers stepping around blockers) may deserve its own plan.
+  The findings show blockers can decide the result, so overtaking (or walkers
+  stepping around blockers) deserves its own plan.
+- **How many people walk at the peak:** a fixed `walk_fraction` lets more
+  people walk than Davis & Dutta saw at Holborn's height once more than about
+  105 people arrive per minute (findings, section 6). Should the share who
+  walk depend on how many arrive, or be capped at the measured walking rate?
