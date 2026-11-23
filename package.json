@@ -1,0 +1,13 @@
+{
+  "name": "escalator-simulator-web",
+  "private": true,
+  "type": "module",
+  "description": "Dev tooling for the browser GUI. The GUI itself needs no build step.",
+  "scripts": {
+    "test": "node --test 'web/tests/*.test.mjs'",
+    "serve": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "pyodide": "314.0.7"
+  }
+}

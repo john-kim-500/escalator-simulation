@@ -16,3 +16,8 @@ htmlcov/
 # Experiment output saved in the project root (e.g. compare.csv), not files in subfolders
 /*.csv
 /*.json
+!/package.json
+!/package-lock.json
+
+# Node dev tooling (npm install)
+node_modules/
