@@ -6,6 +6,7 @@ Test the claim that an escalator moves more people when **everyone stands on bot
 lanes** than under the usual convention of **standing on one side and walking on
 the other**. For background, see the 2015–16 London Underground trial at Holborn
 station, where standing on both sides moved about 30% more people at peak times.
+For that trial and other studies, see [RESEARCH.md](RESEARCH.md).
 
 ## Design principles
 
