@@ -1,0 +1,193 @@
+"""Time-stepped, agent-based escalator simulation.
+
+The engine does no I/O, uses no threads and never sleeps. The caller drives it
+by calling `step()` and reads state through `snapshot()` and `results()`. Both
+return plain data that can be turned into JSON, so the same engine runs from the
+command line or in the browser through Pyodide.
+
+Movement model (one track per lane, positions measured from the bottom):
+  * A person's speed is belt_speed plus their walking speed (0 when standing).
+  * Nobody gets closer to the person ahead than their own gap
+    (stand_gap or walk_gap), and nobody moves slower than the belt.
+  * A person at the front of a lane's queue boards once the last person on that
+    lane is one gap up and board_headway has passed since the last boarding.
+    Boarding times are worked out within a step, so lane capacity does not
+    depend on dt.
+"""
+from __future__ import annotations
+
+import math
+import random
+from collections import deque
+from typing import Any, Optional
+
+from .config import SimConfig
+from .metrics import summarize
+from .person import Person
+from .strategies import get_strategy
+
+_EPS = 1e-9
+
+
+class Simulation:
+    def __init__(
+        self,
+        config: Optional[SimConfig] = None,
+        strategy: str = "walk-left",
+        seed: Optional[int] = 0,
+    ) -> None:
+        self.config = config or SimConfig()
+        self.strategy = get_strategy(strategy, self.config)
+        if seed is None:
+            seed = random.randrange(2**32)
+        self.seed = seed
+        # Arrivals use their own random stream, so the same seed gives the same
+        # crowd under every strategy (a fair, like-for-like comparison).
+        self._arrival_rng = random.Random(f"arrivals-{seed}")
+        self._behaviour_rng = random.Random(f"behaviour-{seed}")
+
+        lanes = self.config.lanes
+        self.length = self.config.length
+        self.steps = 0
+        self.time = 0.0
+        self.people: list[Person] = []
+        self.queues: list[deque[Person]] = [deque() for _ in range(lanes)]
+        self.on_belt: list[list[Person]] = [[] for _ in range(lanes)]  # top first
+        self.finished: list[Person] = []
+        self._last_board = [-math.inf] * lanes
+        self._next_arrival = self._draw_interarrival(0.0)
+
+        # Queue statistics, sampled at the end of each step after warm-up.
+        self.queue_samples = 0
+        self.queue_sum = 0
+        self.queue_max = 0
+        self.lane_queue_max = [0] * lanes
+
+    # ------------------------------------------------------------------ API
+
+    @property
+    def done(self) -> bool:
+        return self.time >= self.config.duration - _EPS
+
+    def step(self) -> None:
+        """Advance the simulation by one time step (config.dt)."""
+        cfg = self.config
+        t0 = self.time
+        t1 = (self.steps + 1) * cfg.dt
+        self._arrive(t1)
+        for lane in range(cfg.lanes):
+            self._move_lane(lane, t1, t1 - t0)
+            self._board_lane(lane, t0, t1)
+        self.steps += 1
+        self.time = t1
+        self._sample_queues()
+
+    def run(self, until: Optional[float] = None) -> dict[str, Any]:
+        """Step until `until` seconds (default: config.duration); return results()."""
+        target = self.config.duration if until is None else until
+        while self.time < target - _EPS:
+            self.step()
+        return self.results()
+
+    def snapshot(self) -> dict[str, Any]:
+        """Full current state as plain data (for visual front ends)."""
+        return {
+            "time": self.time,
+            "length": self.length,
+            "belt_speed": self.config.belt_speed,
+            "step_depth": self.config.step_depth,
+            "strategy": self.strategy.name,
+            "arrived": len(self.people),
+            "finished": len(self.finished),
+            "lanes": [
+                {
+                    "index": i,
+                    "people": [p.to_dict() for p in self.on_belt[i]],
+                    "queue": [p.to_dict() for p in self.queues[i]],
+                }
+                for i in range(self.config.lanes)
+            ],
+        }
+
+    def results(self) -> dict[str, Any]:
+        """Summary metrics for the run so far (excluding warm-up)."""
+        return summarize(self)
+
+    # ------------------------------------------------------------ internals
+
+    def _draw_interarrival(self, after: float) -> float:
+        rate = self.config.arrival_rate / 60.0
+        if rate <= 0:
+            return math.inf
+        return after + self._arrival_rng.expovariate(rate)
+
+    def _arrive(self, t1: float) -> None:
+        cfg = self.config
+        rng = self._arrival_rng
+        while self._next_arrival <= t1:
+            # Always draw in the same order so the crowd is identical per seed.
+            wants = rng.random() < cfg.walk_fraction
+            speed = max(cfg.walk_speed_min, rng.gauss(cfg.walk_speed_mean, cfg.walk_speed_sd))
+            person = Person(len(self.people), self._next_arrival, wants, speed)
+            lane, walking = self.strategy.choose(
+                person, [len(q) for q in self.queues], self._behaviour_rng
+            )
+            person.lane, person.walking = lane, walking
+            self.people.append(person)
+            self.queues[lane].append(person)
+            self._next_arrival = self._draw_interarrival(self._next_arrival)
+
+    def _move_lane(self, lane: int, t1: float, dt: float) -> None:
+        cfg = self.config
+        belt = cfg.belt_speed
+        people = self.on_belt[lane]
+        limit = math.inf  # new position of the person ahead
+        for p in people:
+            desired = p.pos + (belt + (p.walk_speed if p.walking else 0.0)) * dt
+            new = min(desired, limit - p.gap(cfg))
+            new = max(new, p.pos + belt * dt)  # the belt always carries you
+            p.speed = (new - p.pos) / dt
+            p.pos = new
+            limit = new
+        while people and people[0].pos >= self.length:
+            p = people.pop(0)
+            p.exit_time = t1 - (p.pos - self.length) / p.speed
+            p.pos = self.length
+            self.finished.append(p)
+
+    def _board_lane(self, lane: int, t0: float, t1: float) -> None:
+        cfg = self.config
+        queue = self.queues[lane]
+        people = self.on_belt[lane]
+        while queue:
+            p = queue[0]
+            gap = p.gap(cfg)
+            earliest = max(t0, p.arrival_time, self._last_board[lane] + cfg.board_headway)
+            if people:
+                last = people[-1]
+                if last.pos < gap - _EPS:
+                    break
+                # When the last person was exactly one gap up.
+                earliest = max(earliest, t1 - (last.pos - gap) / last.speed)
+            if earliest > t1 + _EPS:
+                break
+            earliest = min(earliest, t1)
+            pos = cfg.belt_speed * (t1 - earliest)
+            if people:
+                pos = min(pos, people[-1].pos - gap)
+            queue.popleft()
+            p.pos = max(pos, 0.0)
+            p.speed = cfg.belt_speed
+            p.board_time = earliest
+            people.append(p)
+            self._last_board[lane] = earliest
+
+    def _sample_queues(self) -> None:
+        if self.time < self.config.warmup - _EPS:
+            return
+        lengths = [len(q) for q in self.queues]
+        total = sum(lengths)
+        self.queue_samples += 1
+        self.queue_sum += total
+        self.queue_max = max(self.queue_max, total)
+        self.lane_queue_max = [max(a, b) for a, b in zip(self.lane_queue_max, lengths)]
