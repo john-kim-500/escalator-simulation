@@ -38,8 +38,10 @@ Each study is marked with how closely it has been read:
 the escalator is **tall** and the bottom is **crowded**. With few people or
 short escalators, a walking lane can be as good or better.
 
-**Where they are silent:** few studies measure how much time walkers
-actually save, or how well people keep to a rule over time. Both matter for
+**Where they are silent:** no study found so far measures how much time
+walkers save. Davis & Dutta and the Holborn trial show that walkers care about
+time, but neither puts a number on it (see "Walkers' time" in each entry). Few
+studies look at how well people keep to a rule over time. Both matter for
 this project's `feature/time-saved` work and for the rule-breaking settings
 (`defect_threshold`, `defect_prob`, `blocker_rate`).
 
@@ -48,7 +50,7 @@ this project's `feature/time-saved` work and for the rule-breaking settings
 ### Davis & Dutta (2002): counts at 10 London stations
 
 **Checked:** used in the code (`tests/test_calibration.py`, class
-`DavisDutta2002`).
+`DavisDutta2002`) and read in full.
 
 P. Davis and G. Dutta (2002). "Estimation of Capacity of Escalators in London
 Underground." IIM Ahmedabad working paper 2002-11-01.
@@ -81,10 +83,21 @@ formulas by several people per minute.
 taller escalators (people squeeze in from the walking line). The simulation's
 standing side carries a fixed number, so it is about 7% low at 23 m.
 
+**Walkers' time:** not measured. Two related points:
+- **People in a hurry walk more (measured).** On Friday nights at Leicester
+  Square and Tottenham Court Road, when most riders weren't commuters, about
+  **10.9 fewer people per minute walked**, and 3.6 more stood. The authors
+  explain this by commuters wanting "to minimise travel time", while other
+  riders, "being in less of a hurry, are less likely to walk up escalators"
+  (section 6.2.5).
+- **Walking speed is assumed, not measured.** The paper's own capacity
+  calculation assumes walkers climb at 36 m per minute (0.6 m/s) on top of the
+  belt (section 5.2.1). It never works out the time this saves.
+
 ### Harrison et al. (2016): the Holborn trial
 
 **Checked:** used in the code (`tests/test_calibration.py`, class
-`HolbornTrial2015`).
+`HolbornTrial2015`) and read in full.
 
 Harrison et al. (2016). "Pilot for Standing on Both Sides of Escalators."
 6th Symposium on Lift & Escalator Technologies.
@@ -118,6 +131,13 @@ escalators, or a peak rather than an average). **Don't quote them without
 checking the original report.** An earlier test at Holborn in 2002 was judged
 inconclusive, because people didn't keep standing on both sides for long
 ([IanVisits](https://www.ianvisits.co.uk/articles/holborn-tests-standing-on-both-sides-of-the-escalator-15833/)).
+
+**Walkers' time:** not measured. The trial planned "timed walks from
+platforms" (section 4.2), but the report gives no results for them. The only
+mention of time comes from passenger complaints: recurring themes were that
+the trial wouldn't work, that people felt "deprived of the choice to walk",
+and that it "delays their journey" (section 5.2.1). Three people supported the
+trial but wanted at least one escalator kept for walking.
 
 ## Other studies
 
@@ -248,8 +268,9 @@ Questions the studies raise that this simulation could help answer:
    standing; Canary Wharf (shorter) favors walk-left. A sweep over `rise`
    could find the crossover.
 2. **How much time do walkers save, and what does it cost everyone else?**
-   Yamamoto et al. suggest the answers point in opposite directions. This is
-   the `feature/time-saved` work.
+   Yamamoto et al. suggest the answers point in opposite directions. No study
+   measures it, though Davis & Dutta and Holborn show walkers care. This is the
+   `feature/time-saved` work.
 3. **How much rule-breaking can a stand-on-both-sides rule survive?** Japan's
    experience suggests people drift back to walking.
 4. **Does the simulation agree with Filippidis et al.?** It would need their
