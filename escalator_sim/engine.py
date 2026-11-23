@@ -21,6 +21,7 @@ import random
 from collections import deque
 from typing import Any
 
+from . import draws
 from .config import SimConfig
 from .metrics import summarize
 from .person import Person
@@ -41,10 +42,9 @@ class Simulation:
         if seed is None:
             seed = random.randrange(2**32)
         self.seed = seed
-        # Arrivals use their own random stream, so the same seed gives the same
-        # crowd under every strategy (a fair, like-for-like comparison).
-        self._arrival_rng = random.Random(f"arrivals-{seed}")
-        self._behaviour_rng = random.Random(f"behaviour-{seed}")
+        # Arrival draws are keyed apart from strategy draws, so the same seed
+        # gives the same crowd under every strategy (a like-for-like comparison).
+        self._draws = draws.Draws(seed)
 
         lanes = self.config.lanes
         self.length = self.config.length
@@ -150,19 +150,17 @@ class Simulation:
         rate = self.config.arrival_rate / 60.0
         if rate <= 0:
             return math.inf
-        return after + self._arrival_rng.expovariate(rate)
+        return after + self._draws.exponential(draws.ARRIVAL_GAP, len(self.people), rate)
 
     def _arrive(self, t1: float) -> None:
         cfg = self.config
-        rng = self._arrival_rng
+        d = self._draws
         while self._next_arrival <= t1:
-            # Always draw in the same order so the crowd is identical per seed.
-            wants = rng.random() < cfg.walk_fraction
-            speed = max(cfg.walk_speed_min, rng.gauss(cfg.walk_speed_mean, cfg.walk_speed_sd))
-            person = Person(len(self.people), self._next_arrival, wants, speed)
-            lane, walking = self.strategy.choose(
-                person, [len(q) for q in self.queues], self._behaviour_rng
-            )
+            n = len(self.people)
+            wants = d.uniform(draws.WANTS_TO_WALK, n) < cfg.walk_fraction
+            speed = d.normal(draws.WALK_SPEED, n, cfg.walk_speed_mean, cfg.walk_speed_sd)
+            person = Person(n, self._next_arrival, wants, max(cfg.walk_speed_min, speed))
+            lane, walking = self.strategy.choose(person, [len(q) for q in self.queues], d)
             person.lane, person.walking = lane, walking
             person.kind = self.strategy.kind(person)
             self.people.append(person)

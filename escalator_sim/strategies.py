@@ -6,9 +6,9 @@ whether they will walk once on the escalator. New strategies subclass
 """
 from __future__ import annotations
 
-import random
 from collections.abc import Sequence
 
+from . import draws as _draws
 from .config import SimConfig
 from .person import Person
 
@@ -35,9 +35,13 @@ class Strategy:
         """Raise ValueError if the strategy cannot run with this config."""
 
     def choose(
-        self, person: Person, queue_lengths: Sequence[int], rng: random.Random
+        self, person: Person, queue_lengths: Sequence[int], draws: _draws.Draws
     ) -> tuple[int, bool]:
-        """Return (lane, walking) for a newly arrived person."""
+        """Return (lane, walking) for a newly arrived person.
+
+        Random choices come from `draws`, keyed by `person.id` and a purpose
+        from `draws.py`, so each strategy's choices don't disturb the crowd.
+        """
         raise NotImplementedError
 
     def kind(self, person: Person) -> str:
@@ -68,9 +72,11 @@ def get_strategy(name: str, config: SimConfig) -> Strategy:
     return cls(config)
 
 
-def _shortest(lanes: Sequence[int], queue_lengths: Sequence[int], rng: random.Random) -> int:
+def _shortest(lanes: Sequence[int], queue_lengths: Sequence[int], draws: _draws.Draws,
+              person: Person) -> int:
     best = min(queue_lengths[i] for i in lanes)
-    return rng.choice([i for i in lanes if queue_lengths[i] == best])
+    tied = [i for i in lanes if queue_lengths[i] == best]
+    return draws.choice(_draws.TIE_BREAK, person.id, tied)
 
 
 @register
@@ -79,9 +85,9 @@ class StandBoth(Strategy):
     description = "Everyone stands in every lane and joins the shortest queue."
 
     def choose(
-        self, person: Person, queue_lengths: Sequence[int], rng: random.Random
+        self, person: Person, queue_lengths: Sequence[int], draws: _draws.Draws
     ) -> tuple[int, bool]:
-        return _shortest(range(len(queue_lengths)), queue_lengths, rng), False
+        return _shortest(range(len(queue_lengths)), queue_lengths, draws, person), False
 
 
 @register
@@ -97,16 +103,16 @@ class WalkLeft(Strategy):
             raise ValueError("walk-left needs at least 2 lanes")
 
     def choose(
-        self, person: Person, queue_lengths: Sequence[int], rng: random.Random
+        self, person: Person, queue_lengths: Sequence[int], draws: _draws.Draws
     ) -> tuple[int, bool]:
         cfg = self.config
         if person.wants_to_walk:
             return WALK_LANE, True
-        if rng.random() < cfg.blocker_rate:
+        if draws.uniform(_draws.BLOCKER, person.id) < cfg.blocker_rate:
             return WALK_LANE, False
-        lane = _shortest(range(1, len(queue_lengths)), queue_lengths, rng)
+        lane = _shortest(range(1, len(queue_lengths)), queue_lengths, draws, person)
         tempted = queue_lengths[lane] - queue_lengths[WALK_LANE] >= cfg.defect_threshold
-        if tempted and rng.random() < cfg.defect_prob:
+        if tempted and draws.uniform(_draws.DEFECT, person.id) < cfg.defect_prob:
             return WALK_LANE, True
         return lane, False
 

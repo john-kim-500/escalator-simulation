@@ -269,14 +269,14 @@ Nothing is saved between page loads.
 
 ## Determinism
 
-`Simulation` uses two separate random streams, both seeded from the run's seed:
+Each random number comes from `Draws` (`draws.py`): a hash of the seed, a
+purpose and the person's number. No number depends on another, or on order.
 
-- **Arrivals** (`"arrivals-{seed}"`): arrival times, who wants to walk, and
-  walking speeds. Always drawn in the same order.
-- **Behavior** (`"behaviour-{seed}"`): strategy decisions such as defecting
-  and blocking.
+- **Arrival purposes:** arrival gaps, who wants to walk, and walking speeds.
+- **Behavior purposes:** strategy decisions such as line ties, defecting and
+  blocking.
 
-Strategies differ only in how they use the behavior stream. So with the same
+Strategies differ only in which behavior purposes they use. So with the same
 seed, every strategy faces **the same crowd**. That's what makes the
 side-by-side animation and the compared experiments a fair like-for-like test.
 Experiments use seeds `seed, seed+1, …` for every strategy.

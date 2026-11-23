@@ -4,7 +4,9 @@ import unittest
 
 from escalator_sim import SimConfig, Simulation, compare, sweep
 from escalator_sim.cli import main
+from escalator_sim.draws import Draws
 from escalator_sim.metrics import mean_ci, percentile
+from escalator_sim.strategies import WalkLeft
 
 SHORT = dict(duration=180.0, warmup=60.0)  # warm-up must exceed the 40 s ride
 
@@ -122,11 +124,69 @@ class Reproducibility(unittest.TestCase):
             return [(p.arrival_time, p.wants_to_walk, p.walk_speed) for p in s.people]
         self.assertEqual(key(a), key(b))
 
+    def test_new_draw_leaves_crowd_and_choices_unchanged(self):
+        class ExtraDraw(WalkLeft):
+            def choose(self, person, queue_lengths, draws):
+                draws.uniform("test.extra", person.id)
+                return super().choose(person, queue_lengths, draws)
+
+        cfg = SimConfig(blocker_rate=0.1, **SHORT)
+        plain = Simulation(cfg, "walk-left", 7)
+        extra = Simulation(cfg, "walk-left", 7)
+        extra.strategy = ExtraDraw(cfg)
+        plain.run(), extra.run()
+        def key(s):
+            return [(p.arrival_time, p.wants_to_walk, p.walk_speed, p.lane, p.walking)
+                    for p in s.people]
+        self.assertEqual(key(plain), key(extra))
+
+    def test_walk_fraction_keeps_arrival_times(self):
+        def times(fraction):
+            sim = Simulation(SimConfig(walk_fraction=fraction, **SHORT), "walk-left", 5)
+            sim.run()
+            return [p.arrival_time for p in sim.people]
+        self.assertEqual(times(0.25), times(0.5))
+
     def test_people_conserved(self):
         sim = Simulation(SimConfig(**SHORT), "walk-left", 4)
         stepped(sim, lambda s: self.assertEqual(
             len(s.people),
             len(s.finished) + sum(map(len, s.queues)) + sum(map(len, s.on_belt))))
+
+
+class RandomDraws(unittest.TestCase):
+    def test_known_values(self):
+        # Pinned so a change in hashing or Python's math shows up here first.
+        d = Draws(1)
+        self.assertEqual(d.uniform("arrival_gap", 0), 0.7669341712655976)
+        self.assertAlmostEqual(d.normal("walk_speed", 5, 0.7, 0.2), 0.6839428765673651,
+                               places=12)
+        self.assertAlmostEqual(d.exponential("arrival_gap", 3, 2.0), 0.11116357945484559,
+                               places=12)
+
+    def test_same_key_same_value_and_keys_independent(self):
+        a, b = Draws(1), Draws(1)
+        self.assertEqual(a.uniform("x", 3), b.uniform("x", 3))
+        values = {a.uniform("x", 3), a.uniform("y", 3), a.uniform("x", 4), Draws(2).uniform("x", 3)}
+        self.assertEqual(len(values), 4)
+
+    def test_choice_covers_options(self):
+        d = Draws(1)
+        picks = [d.choice("pick", i, ["a", "b", "c"]) for i in range(300)]
+        self.assertEqual(set(picks), {"a", "b", "c"})
+
+    def test_distributions_match_theory(self):
+        d, n = Draws(3), 10_000
+        u = [d.uniform("u", i) for i in range(n)]
+        self.assertTrue(all(0.0 <= x < 1.0 for x in u))
+        self.assertAlmostEqual(sum(u) / n, 0.5, delta=0.01)
+        gaps = [d.exponential("e", i, 2.0) for i in range(n)]
+        self.assertAlmostEqual(sum(gaps) / n, 0.5, delta=0.02)
+        z = [d.normal("n", i, 0.7, 0.2) for i in range(n)]
+        mean = sum(z) / n
+        sd = (sum((x - mean) ** 2 for x in z) / (n - 1)) ** 0.5
+        self.assertAlmostEqual(mean, 0.7, delta=0.01)
+        self.assertAlmostEqual(sd, 0.2, delta=0.01)
 
 
 class SnapshotAndResults(unittest.TestCase):
