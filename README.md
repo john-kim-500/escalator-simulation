@@ -69,4 +69,5 @@ print(sim.results())
 python3 -m unittest discover -s tests   # engine and command line
 npm install && npm test                 # web: runs the engine in Pyodide under Node
 pip install -r requirements-dev.txt && npm run lint   # style checks
+npm run lint:fix                                       # fix what it can, list the rest
 ```

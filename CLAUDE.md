@@ -45,12 +45,13 @@ python3 -m unittest tests.test_engine.Capacity.test_board_headway_limits_capacit
 npm install && npm test                                        # JS tests: runs the real engine in Pyodide under Node (Node 22+)
 node --test web/tests/helpers.test.mjs                         # one JS test file
 pip install -r requirements-dev.txt && npm run lint            # style checks (Ruff + ESLint)
+npm run lint:fix                                               # fix what the checkers can, list the rest
 
 python3 -m escalator_sim compare -n 20                         # CLI; see --help on run/compare/sweep
 python3 -m http.server 8000                                    # from repo root, then open http://localhost:8000/web/
 ```
 
-There is no build step and no automatic formatter; fix style problems by hand. The web GUI is plain ES modules served as static files. Style settings live in `pyproject.toml` (Ruff only; it is not a package build file) and `eslint.config.js`.
+There is no build step and no automatic formatter. `npm run lint:fix` fixes quotes, import order, `let`/`const` and indentation; fix the rest (mostly long lines and type hints) by hand. The web GUI is plain ES modules served as static files. Style settings live in `pyproject.toml` (Ruff only; it is not a package build file) and `eslint.config.js`.
 
 ## Architecture
 

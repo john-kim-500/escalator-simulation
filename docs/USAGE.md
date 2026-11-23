@@ -432,7 +432,8 @@ To check code style (line length, type hints and similar rules in `CLAUDE.md`):
 
 ```bash
 pip install -r requirements-dev.txt
-npm run lint
+npm run lint        # report problems
+npm run lint:fix    # fix what it can, then list the rest
 ```
 
 GitHub runs the style checks and both sets of tests on every pull request.
