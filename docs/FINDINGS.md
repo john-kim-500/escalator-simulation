@@ -7,6 +7,8 @@ the original question: which rule moves more people per minute?
 
 All numbers come from the simulation, not from measurements. See
 [What the model leaves out](#what-the-model-leaves-out) before quoting them.
+For the time saved by walkers and standers in two short tables, see
+[FINDINGS_SUMMARY.md](FINDINGS_SUMMARY.md).
 
 ## Summary
 
