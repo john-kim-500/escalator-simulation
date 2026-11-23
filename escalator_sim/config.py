@@ -30,7 +30,7 @@ class SimConfig:
 
     # --- Spacing and boarding ---
     stand_gap: float = 0.8
-    walk_gap: float = 1.2
+    walk_gap: float = 0.9
     board_headway: float = 0.5
 
     # --- Behaviour (walk-left strategy) ---
@@ -203,7 +203,8 @@ PARAM_INFO: dict[str, dict[str, Any]] = {
     "stand_gap": _p("spacing", "Standing gap", "m", 0.3, 2, 0.05,
                     "Closest a stander gets to the person ahead (0.8 m ≈ one empty step)."),
     "walk_gap": _p("spacing", "Walking gap", "m", 0.3, 3, 0.05,
-                   "Closest a walker gets to the person ahead."),
+                   "Closest a walker gets to the person ahead (0.9 m fits measured London flows; "
+                   "see tests/test_calibration.py)."),
     "board_headway": _p("spacing", "Boarding interval", "s", 0, 3, 0.1,
                         "Minimum time between two people stepping onto the same lane."),
     "defect_threshold": _p("behaviour", "Switch threshold", "people", 0, 50, 1,
@@ -232,8 +233,8 @@ PRESETS: dict[str, dict[str, Any]] = {
                  "description": "Light traffic: both strategies carry everyone.",
                  "values": {"arrival_rate": 40}},
     "tall": {"label": "Tall escalator (24 m rise)",
-             "description": "Like a deep metro station, where few people walk.",
-             "values": {"rise": 24, "walk_fraction": 0.1, "warmup": 180, "duration": 900}},
+             "description": "Like Holborn: about 45% walk at rush hour (Davis & Dutta 2002).",
+             "values": {"rise": 24, "walk_fraction": 0.45, "warmup": 180, "duration": 900}},
     "no-switching": {"label": "Nobody switches lanes",
                      "description": "Standers never walk or block the walk lane.",
                      "values": {"defect_prob": 0, "blocker_rate": 0}},

@@ -79,7 +79,7 @@ the web version becomes the main product and fast page loads matter.
 | Parameter | Meaning | Default |
 |---|---|---|
 | `stand_gap` | Minimum spacing for people standing (m). Standers often leave a step empty | 0.8 |
-| `walk_gap` | Minimum spacing for people walking (m) | 1.2 |
+| `walk_gap` | Minimum spacing for people walking (m). Fitted to measured flows (Davis & Dutta 2002) | 0.9 |
 | `board_headway` | Minimum time between boardings in one lane (s) | 0.5 |
 
 ### Behaviour (stand-one-side-walk-the-other strategy)
@@ -160,8 +160,9 @@ Results print as text tables, with optional `--json` / `--csv` export.
 2. ✅ Metrics and the `run`/`compare` commands.
 3. ✅ The `sweep` command, which answers *when* each strategy wins (arrival rate,
    walk fraction, rise).
-4. Check the results against the Holborn trial figures, and replace the guessed defaults
-   (gaps, walking speeds, defection) with observed values.
+4. *(Partly done)* Check the results against measured data. `walk_gap` is fitted to Davis &
+   Dutta (2002) and pinned by `tests/test_calibration.py`. The 2015 Holborn trial's 81 vs 112.5
+   ppm were pre-trial calculations, not measurements. Still guessed: walking speeds, defection.
 5. *(Planned)* A static web front end: Pyodide loads `escalator_sim`, a JS canvas
    draws `snapshot()`, and sliders set the parameters. See [docs/GUI_PLAN.md](docs/GUI_PLAN.md).
 6. *(Later)* Mixed or adaptive strategies, and boarding-time distributions.
