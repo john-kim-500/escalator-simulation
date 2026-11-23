@@ -237,11 +237,17 @@ The simulation offers three views of what is happening:
 the simulation's lists of people:
 
 - **People per minute** counts everyone who got off at the top between the end
-  of the warm-up and the current time.
+  of the warm-up and `duration` (or the current time, if earlier). Line
+  lengths are recorded over the same period.
 - **Waits and trip times** cover people who *arrived* after the warm-up.
-  Anyone still waiting at the end counts with the time they've waited so far.
-  So when the escalator can't keep up, the reported waits are, if anything, too
-  short, rather than leaving out the people who waited longest.
+  Trip times are also split into people who want to walk ("cares") and
+  everyone else ("others").
+- **Without the drain** (the default), anyone still waiting at the end counts
+  with the time they've waited so far, and anyone not yet at the top has no
+  trip time. So when the escalator can't keep up, waits and trips come out too
+  short.
+- **With the drain** (`drain = 1`), everyone measured has finished, so waits
+  and trips are complete. See below.
 - A warning is added if the warm-up is shorter than one ride from bottom to
   top. Otherwise the first minutes are measured before anyone could possibly
   have reached the top, and people per minute comes out too low.
@@ -250,41 +256,46 @@ the simulation's lists of people:
 
 | Who runs the simulation | When it stops |
 |---|---|
-| Command line `run` (`cli.py`) | at `duration` |
-| Experiments (`experiments.py`) | at `duration` |
-| Browser animation (`session.py`) | moves forward in chunks, never past `duration`; reports when it's done |
+| Command line `run` (`cli.py`) | at `duration`, then drains if `drain = 1` |
+| Experiments (`experiments.py`) | at `duration`, then drains if `drain = 1` |
+| Browser animation (`session.py`) | moves forward in chunks, never past `duration`; reports when it's done. Its final results drain first if `drain = 1` |
 
-So "the run ends at `duration`" is assumed in three places: `run()`, `done`,
-and the browser's stepping in `session.py`.
+`done` means "measuring is over" (`duration` reached), with or without the
+drain. The animation stops at `duration` and doesn't show the drain.
+
+### Finishing the line (drain)
+
+With `drain = 1`, `run()` calls `drain()` after reaching `duration`:
+
+1. It saves the line length at `duration`, for **Queue end**.
+2. It stops new arrivals.
+3. It keeps calling `step()` until everyone who arrived after the warm-up has
+   reached the top. There's no time limit.
+
+This gives exactly the waits and trips these people would have had in a
+longer run. Lines are first come, first served and nobody overtakes, so
+people arriving later can never change an earlier person's trip. Lane choices
+(including blocking and switching to walk) are made on arrival, from the line
+lengths at that moment.
+
+People per minute, line lengths and the walked share stay measured from the
+warm-up to `duration`, so the drain doesn't change them. Only `run()` with no
+`until` drains; `step()` and `run(until=...)` never do.
 
 ## Possible changes to the code
 
 These came up while reading the code with the time-saved plan
-(`TIME_SAVED_PLAN.md` in this folder, currently on the `feature/time-saved` branch) in
-mind. That plan lets everyone who arrived
-finish their trip after `duration` (it calls this the "drain"), and reports
-trip times separately for people who want to walk and everyone else.
+(`TIME_SAVED_PLAN.md`) in mind. The drain and the split trip times are now
+in place; the points below are still open.
 
-1. **"End of measuring" and "current time" are the same thing today.**
-   `summarize()` treats the current time as the end of the measuring period.
-   If the simulation keeps running after `duration` to let people finish, that
-   would make the measuring period longer and change people per minute and the
-   waits. The two need to be kept separate.
-2. **Arrivals never stop.** New people keep arriving for as long as the
-   simulation runs. Once `duration` is reached, arrivals need to stop, and
-   recording line lengths should probably stop too.
-3. **"Done" means one thing in three places.** All three places in the table
-   above assume the run ends at `duration`. Letting people finish means
-   deciding whether "done" means "measuring is over" or "everyone has reached
-   the top", and whether the animation shows people finishing.
-4. **The measurements are mixed into the simulation.** `summarize()` reads the
+1. **The measurements are mixed into the simulation.** `summarize()` reads the
    simulation's internal running totals directly, and the quick totals for the
    animation partly repeat them. One option is to move all measuring into a
    separate piece of code that the simulation tells about events ("someone
    stepped on", "someone got off", "a step ended"). That would keep the
    movement rules and the measuring apart, and give the new
    "walkers vs. everyone else" trip times an obvious place to live.
-5. **Smaller points:**
+2. **Smaller points:**
    - Removing someone from the top of a lane makes the computer shuffle the
      rest of that lane's list along by one. That's fine with a few dozen people
      per lane, but would slow down with far more.
@@ -308,12 +319,9 @@ trip times separately for people who want to walk and everyone else.
 
 ## Open questions
 
-- Should letting people finish be part of the simulation itself (for example, a
-  setting), or a separate stage that whoever runs the simulation adds after
-  `duration`?
-- Should the animation show people finishing after `duration`, or stop at
-  `duration` as it does now?
-- Is it worth separating the measuring code now, or only once the
-  "walkers vs. everyone else" trip times are added?
+- Should the animation show people finishing after `duration`? For now it
+  stops at `duration`, and only its final results include the drain.
+- Is it worth separating the measuring code now that the "walkers vs.
+  everyone else" trip times are in `summarize()`?
 - Should the stepping-on simplification for walkers be fixed? It slightly
   reduces the time walkers save, which is exactly what this branch measures.

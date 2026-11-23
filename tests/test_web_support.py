@@ -166,6 +166,17 @@ class SessionApi(unittest.TestCase):
         self.assertEqual(json.loads(s.live_results())[0]["throughput_per_min"],
                          expected["throughput_per_min"])
 
+    def test_live_results_drain_like_cli_run(self):
+        config = {**SHORT, "arrival_rate": 200, "drain": 1}
+        s = Session()
+        s.live_start(json.dumps(config), json.dumps(["walk-left"]), 9)
+        s.live_advance(1000)
+        got = json.loads(s.live_results())[0]
+        expected = Simulation(SimConfig(**config), "walk-left", 9).run()
+        self.assertEqual(got["drained"], 1)
+        for key in ("wait_mean", "trip_mean", "trip_mean_cares", "queue_end", "finished"):
+            self.assertEqual(got[key], expected[key], key)
+
     def test_experiment_steps_match_compare(self):
         s = Session()
         spec = {"kind": "compare", "config": SHORT, "strategies": ["stand-both", "walk-left"],
