@@ -162,6 +162,6 @@ Results print as text tables, with optional `--json` / `--csv` export.
    walk fraction, rise).
 4. Check the results against the Holborn trial figures, and replace the guessed defaults
    (gaps, walking speeds, defection) with observed values.
-5. *(Later)* A static web front end: Pyodide loads `escalator_sim`, a JS canvas
-   draws `snapshot()`, and sliders set the parameters.
+5. *(Planned)* A static web front end: Pyodide loads `escalator_sim`, a JS canvas
+   draws `snapshot()`, and sliders set the parameters. See [docs/GUI_PLAN.md](docs/GUI_PLAN.md).
 6. *(Later)* Mixed or adaptive strategies, and boarding-time distributions.
