@@ -2,7 +2,7 @@
 
 This document explains how the parts of the simulator talk to each other. For
 *why* the model is built the way it is (movement rules, parameters,
-calibration), see `PLAN.md`. For the GUI's milestones, see `docs/GUI_PLAN.md`.
+calibration), see `PLAN.md`. For the GUI's milestones, see `GUI_PLAN.md`.
 
 ## The big idea: one engine, two front ends
 

@@ -3,7 +3,7 @@
 This document explains how the simulation itself works, step by step. The code
 is mainly in `escalator_sim/engine.py`, with help from `person.py`,
 `strategies.py` and `metrics.py`. For how the simulation connects to the
-browser app, see `DESIGN.md`. For *why* the model is built this way, see
+browser app, see `APP_DESIGN.md`. For *why* the model is built this way, see
 `PLAN.md`.
 
 The last sections list possible changes to the code and open questions. They
@@ -252,7 +252,7 @@ and the browser's stepping in `session.py`.
 ## Possible changes to the code
 
 These came up while reading the code with the time-saved plan
-(`docs/TIME_SAVED_PLAN.md`, currently on the `feature/time-saved` branch) in
+(`TIME_SAVED_PLAN.md` in this folder, currently on the `feature/time-saved` branch) in
 mind. That plan lets everyone who arrived
 finish their trip after `duration` (it calls this the "drain"), and reports
 trip times separately for people who want to walk and everyone else.

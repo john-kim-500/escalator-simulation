@@ -164,5 +164,5 @@ Results print as text tables, with optional `--json` / `--csv` export.
    Dutta (2002) and pinned by `tests/test_calibration.py`. The 2015 Holborn trial's 81 vs 112.5
    ppm were pre-trial calculations, not measurements. Still guessed: walking speeds, defection.
 5. *(Planned)* A static web front end: Pyodide loads `escalator_sim`, a JS canvas
-   draws `snapshot()`, and sliders set the parameters. See [docs/GUI_PLAN.md](docs/GUI_PLAN.md).
+   draws `snapshot()`, and sliders set the parameters. See [GUI_PLAN.md](GUI_PLAN.md).
 6. *(Later)* Mixed or adaptive strategies, and boarding-time distributions.
