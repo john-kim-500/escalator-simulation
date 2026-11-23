@@ -29,6 +29,11 @@ All numbers come from the simulation, not from measurements. See
   hours. At the rush-hour peak on a tall escalator, standing on both sides
   moves more people and costs less time in total. That matches the Holborn
   trial, which found a benefit only at the busiest times.
+- **Another simulation agrees on the direction and on walkers' 30 s, but finds
+  a much bigger gain at the peak** (19–39% more people, against 4–7% here).
+  Its settings don't explain the gap. More likely it's the crowd at the
+  bottom, which this model leaves out (see [Against another
+  model](#against-another-model)).
 
 ## How these were made
 
@@ -61,6 +66,8 @@ To make the tables again (about a minute on 16 cores):
 ```bash
 python3 -m docs.findings > findings.md
 ```
+
+Section 7 of the script's output is in [Against another model](#against-another-model).
 
 The script printed:
 
@@ -212,7 +219,13 @@ Each point below says which rule it likely favors.
   peak.
 - **One line per lane at the bottom.** In reality the crowd at the bottom is a
   mix, and joining the right lane takes time and space. The model doesn't
-  count that.
+  count that. Filippidis et al. do, and their walk-left carries far fewer
+  people at the peak (see [Against another model](#against-another-model)). So
+  this likely favors walk-left here.
+- **Blockers don't depend on the crowd.** Here a fixed share of standers
+  blocks the walk lane. In Filippidis et al., standers end up there mostly in
+  a crush, so blocking grows exactly when it hurts most (this favors
+  walk-left here).
 - **The standing lane is about 7% low at 23 m.** In Davis & Dutta's counts,
   more people squeeze onto the standing side of taller escalators. The model
   carries a fixed 54 per minute per standing lane
@@ -239,3 +252,50 @@ Each point below says which rule it likely favors.
 - **Walkers' time saved has never been measured** (see
   [RESEARCH.md](RESEARCH.md#summary)). The 29 s at quiet times is the model's
   own answer.
+
+## Against another model
+
+Filippidis et al. (2025) simulated the same question with buildingEXODUS, on
+a station modeled on Holborn: a 23.75 m rise, 0.75 m/s, 40% walkers, and
+walkers leaving two empty steps (1.2 m). See
+[RESEARCH.md](RESEARCH.md#filippidis-gwynne-lawrence--galea-2025-station-simulation).
+
+**Where the two agree:**
+- **Walk-left helps when it's quiet, and everyone standing wins at the peak.**
+  They see the switch at about 80–104 arriving per minute; this simulation at
+  100–110.
+- **Walkers save about 30 s on the escalator** (65.6 s riding against 33–37 s
+  walking there; 29 s here).
+- **Varied walking speeds hurt walk-left.** Walkers get held up behind slower
+  ones in both models.
+
+**Where they differ: how much more everyone standing carries.** At the peak,
+everyone standing moves **19–39% more** people there, against **4–7%** here.
+Their walk-left levels off at 71–80 per minute; here it's about 101.
+
+**Settings explain little of the gap.** Running this simulation with their
+settings:
+
+| arrival_rate | stand-both people/min | walk-left people/min | Walkers save s | Others save s | Net saved, person-s/min | Fastest for walkers | Most people/min |
+|---|---|---|---|---|---|---|---|
+| 40 | 39.6 ±0.8 | 39.6 ±0.9 | +28.3 ±0.2 | −0.2 ±0.0 | +441 ±12 | walk-left | tie |
+| 70 | 69.8 ±1.1 | 69.9 ±1.0 | +27.1 ±0.2 | −1.1 ±0.3 | +710 ±29 | walk-left | tie |
+| 90 | 89.9 ±1.1 | 89.5 ±1.0 | +26.6 ±0.3 | −9.0 ±4.1 | +457 ±254 | walk-left | tie |
+| 100 | 100.0 ±1.3 | 96.0 ±0.9 | +27.0 ±0.5 | −39.5 ±8.4 | −1325 ±553 | walk-left | stand-both |
+| 120 | 112.4 ±0.2 | 104.1 ±0.9 | +60.3 ±5.1 | −112.7 ±7.3 | −5267 ±626 | walk-left | stand-both |
+
+Everyone standing gains at most 8% here, even with their settings. The rest
+likely comes from what their model has and this one doesn't. Under walk-left
+at the peak, their walk lane carried only 27.5 per minute and their standing
+lane 44.2, against about 48 and 56 here. The likely reasons:
+- people at the bottom get in each other's way while choosing a lane, which
+  slows boarding;
+- standers end up in the walk lane once it's crowded;
+- walkers can't always reach a free space.
+
+These are the same things listed in [What the model leaves out](#what-the-model-leaves-out).
+They all favor everyone standing, so this simulation's 4–7% is probably a low
+estimate of the gain at the peak. Real counts sit between the two models:
+Davis & Dutta measured about 106 per minute under walk-left at this height,
+and the Holborn report counted 27% more people in an hour on the escalator
+where everyone stood.

@@ -206,7 +206,13 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
   confirm it: 2–5% blockers change the answer as much as how busy it is.
 - **Overtaking:** the model has none, which is what makes blockers so costly.
   The findings show blockers can decide the result, so overtaking (or walkers
-  stepping around blockers) deserves its own plan.
+  stepping around blockers) deserves its own plan. Filippidis et al. (2025)
+  let walkers overtake through the right lane when there's room.
+- **The crowd at the bottom:** Filippidis et al. find that people choosing a
+  lane in a crowd slow everyone's boarding, and that standers end up in the
+  walk lane once it's crowded. Their walk-left carries 71–80 per minute at the
+  peak, against about 101 here ([findings](FINDINGS.md#against-another-model)).
+  Should boarding slow down, and `blocker_rate` rise, as the line grows?
 - **How many people walk at the peak:** a fixed `walk_fraction` lets more
   people walk than Davis & Dutta saw at Holborn's height once more than about
   105 people arrive per minute (findings, section 6). Should the share who

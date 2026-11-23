@@ -41,6 +41,10 @@ GRID_BLOCKERS = [0.0, 0.02, 0.05]
 # with a queue waiting. Above about 105 arrivals/min, a fixed 45% would walk more than that.
 MEASURED_WALKERS_PER_MIN = 83.49 - 1.20 * 23.4 - 8.05
 CAPPED_ARRIVALS = [110, 120, 130, 140, 150]
+# Filippidis et al. (2025), Safety Science 196, 107064: their escalator, walker share and
+# spacing (two empty steps for walkers), to see how much of their larger gain settings explain.
+FILIPPIDIS = dict(rise=23.75, belt_speed=0.75, walk_gap=1.2, walk_fraction=0.40)
+FILIPPIDIS_ARRIVALS = [40, 70, 90, 100, 120]
 
 # (heading, swept parameter, its values, fixed settings)
 SWEEPS: list[tuple[str, str, list[float], dict[str, float]]] = [
@@ -156,6 +160,11 @@ def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
         out.write(f"\n### {len(SWEEPS) + 2}. Arrival rate, walkers held at the measured "
                   f"{MEASURED_WALKERS_PER_MIN:.1f} per minute, no blockers\n\n"
                   f"{table(['arrival_rate', 'walk_fraction', *HEADERS], rows)}\n")
+        points = run("arrival_rate", FILIPPIDIS_ARRIVALS, FILIPPIDIS)
+        rows = [[f"{p['value']:g}", *row(p)] for p in points]
+        shown = ", ".join(f"{k}={v:g}" for k, v in FILIPPIDIS.items())
+        out.write(f"\n### {len(SWEEPS) + 3}. With Filippidis et al.'s settings ({shown}), "
+                  f"no blockers\n\n{table(['arrival_rate', *HEADERS], rows)}\n")
     finally:
         if pool:
             pool.shutdown()
