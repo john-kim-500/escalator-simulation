@@ -86,3 +86,7 @@ npm install && npm test                 # web: runs the engine in Pyodide under 
 pip install -r requirements-dev.txt && npm run lint   # style checks
 npm run lint:fix                                       # fix what it can, list the rest
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE). Provided as is, with no warranty.
