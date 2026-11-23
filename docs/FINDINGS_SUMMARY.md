@@ -134,3 +134,37 @@ losses come from.
   unload. A steady 110 per minute for 15 minutes likely overstates how long the
   line grows, so it overstates both walkers' savings and standers' losses near
   capacity.
+
+## Limitations
+
+The model's results are a guide, not a measurement. Two kinds of source stand
+behind them:
+
+- **Real counts:** Davis & Dutta (2002) counted 10 London stations, and the
+  Holborn trial (2015–16) counted passengers standing on both sides. The model
+  is set to match Davis & Dutta, and checked against Holborn.
+- **Another simulation:** Filippidis et al. (2025) modeled a Holborn-like
+  station in different software. They agree on the direction and on walkers'
+  30 s, but their findings are a comparison, not evidence.
+
+What the model leaves out, and which rule each point likely favors:
+
+- **No overtaking.** One blocker holds up every walker behind them for the
+  whole ride. This makes blockers costly, so the blocker columns likely
+  overstate walkers' losses (favors stand-both).
+- **How many people block the walk lane has never been counted.** The tables
+  show it matters as much as how busy it is. Treat the blocker columns as
+  "what if," not as a prediction.
+- **Boarding doesn't slow when it's crowded at the bottom.** In Filippidis et
+  al., the crowd slows boarding, and walk-left carries far fewer people at the
+  peak. Real counts are higher than theirs, so the true effect is probably
+  smaller, but it's missing here (favors walk-left).
+- **Arrivals are steady.** Real arrivals come in bursts as trains unload. A
+  steady rate for 15 minutes likely overstates how long the line grows near
+  capacity, and with it both walkers' savings and standers' losses.
+- **The share who walk is fixed at 45%.** In reality fewer walk when it's
+  crowded. This is why the 130 rows favor walk-left (see † above).
+- **Walkers' time saved has never been measured.** The 29 s is the model's own
+  answer, though Filippidis et al.'s model gives about 30 s too.
+
+Full list: [What the model leaves out](FINDINGS.md#what-the-model-leaves-out).
