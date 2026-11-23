@@ -7,16 +7,25 @@ from the simulation, not from measurements. See [What the model leaves
 out](FINDINGS.md#what-the-model-leaves-out) before quoting them.
 
 **Settings:** the Holborn escalator (23.4 m rise), 45% want to walk, 20 seeds
-per point, line finished. In the time tables, values are seconds per trip, walk-left compared with
-stand-both. A positive number means walk-left is faster for that person; a
-negative number means slower. "—" means the combination wasn't run. Source
-tables: sections 2, 3 and 5 of [FINDINGS.md](FINDINGS.md).
+per point, line finished. "—" means the combination wasn't run. Source tables:
+sections 2, 3 and 5 of [FINDINGS.md](FINDINGS.md).
+
+**How the time tables compare the rules:** both rules get the same crowd, with
+the same people arriving at the same moments. Only the rule changes. Each value
+is a group's average trip time under stand-both minus its average under
+walk-left, in seconds. A trip runs from arriving at the bottom to reaching the
+top, including the wait in line. A positive number means walk-left is faster for
+that group; a negative number means slower.
 
 **Blockers** are standers who stand in the walk lane. The percentage is a share
 of standers, not of everyone: with 55% standing, 5% blockers is about 2.75% of
 all arrivals.
 
 ## Walkers
+
+Time saved per trip by people who want to walk, under walk-left (where they
+walk up the left lane) compared with everyone standing on both sides (where
+they stand too).
 
 | Arrivals/min | 0% blockers | 1% | 2% | 5% | 10% |
 |---|---|---|---|---|---|
@@ -37,6 +46,10 @@ all arrivals.
   avoid waiting in the standing line, not faster climbing.
 
 ## Standers
+
+Time saved per trip by people who stand, blockers included, under walk-left
+(where they share the one standing lane on the right) compared with everyone
+standing on both sides.
 
 | Arrivals/min | 0% blockers | 1% | 2% | 5% | 10% |
 |---|---|---|---|---|---|
