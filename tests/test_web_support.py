@@ -195,6 +195,20 @@ class SessionApi(unittest.TestCase):
         self.assertEqual(result["csv"], report.compare_csv(data))
         self.assertEqual(len(result["winners"]), 1)
 
+    def test_drained_experiment_result_has_time_saved(self):
+        config = {**SHORT, "drain": 1}
+        s = Session()
+        spec = {"kind": "compare", "config": config, "strategies": ["stand-both", "walk-left"],
+                "replications": 2, "seed": 1}
+        s.exp_start(json.dumps(spec))
+        while json.loads(s.exp_step(0))["done"] < 4:
+            pass
+        result = json.loads(s.exp_result())
+        data = compare(SimConfig(**config), ["stand-both", "walk-left"], 2, 1)
+        self.assertEqual(result["data"]["time_saved"], json.loads(dumps(data["time_saved"])))
+        self.assertTrue(result["data"]["time_saved"][0]["drained"])
+        self.assertIn('"time_saved"', result["json"])
+
     def test_sweep_result_matches_command_line(self):
         s = Session()
         spec = {"kind": "sweep", "config": SHORT, "strategies": ["stand-both", "walk-left"],

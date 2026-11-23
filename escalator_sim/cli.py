@@ -12,7 +12,15 @@ from typing import Any, TextIO
 from .config import GROUPS, PARAM_INFO, SimConfig
 from .engine import Simulation
 from .experiments import Job, MapFn, compare, sweep
-from .report import TABLE_METRICS, experiment_csv, flat_run, to_csv, to_json, winner
+from .report import (
+    TABLE_METRICS,
+    experiment_csv,
+    flat_run,
+    time_winner,
+    to_csv,
+    to_json,
+    winner,
+)
 from .strategies import available_strategies
 
 # ------------------------------------------------------------------ parsing
@@ -123,6 +131,29 @@ def _relative(a: float | None, b: float | None) -> str:
     return f"{(a - b) / b:+.1%}"
 
 
+WALKERS_NOTE = "Walkers = people who want to walk, counted the same way under every strategy."
+DRAIN_HINT = "Add --drain 1 to measure time saved for walkers."
+
+
+def _saving(group: str, stats: dict[str, float | None]) -> str:
+    """'walkers save 42.1 ±3.0 s' or 'others lose 10.7 ±2.2 s' (by sign)."""
+    m, ci = stats["mean"], stats["ci95"]
+    if m is None:
+        return f"{group} -"
+    verb = "save" if m >= 0 else "lose"
+    return f"{group} {verb} {_fmt(abs(m), '{:.1f}', ci)} s"
+
+
+def _time_saved_lines(entries: list[dict[str, Any]]) -> list[str]:
+    lines = []
+    for e in entries:
+        lines.append(f"{e['by']} vs {e['over']}: {_saving('walkers', e['cares'])} per trip; "
+                     f"{_saving('others', e['others'])}")
+    if len(entries) == 1:
+        lines.append(f"Fastest for walkers: {time_winner(entries[0])}")
+    return lines
+
+
 # ----------------------------------------------------------------- commands
 
 def _map_fn(jobs: int) -> MapFn | None:
@@ -190,6 +221,11 @@ def cmd_compare(args: argparse.Namespace, out: TextIO) -> None:
             more = _relative(a["throughput_per_min"]["mean"], b["throughput_per_min"]["mean"])
             wait = _relative(a["wait_mean"]["mean"], b["wait_mean"]["mean"])
             out.write(f"{name} vs {base}: throughput {more}, average wait {wait}\n")
+    out.write(f"\n{WALKERS_NOTE}\n")
+    if config.drain:
+        out.write("".join(line + "\n" for line in _time_saved_lines(data["time_saved"])))
+    elif len(summaries) >= 2:
+        out.write(DRAIN_HINT + "\n")
 
 
 def _parse_values(param: str, text: str) -> list[Any]:
@@ -226,6 +262,10 @@ def cmd_sweep(args: argparse.Namespace, out: TextIO) -> None:
     headers += [f"{s} thru/min" for s in strategies]
     headers += [f"{s} wait s" for s in strategies]
     headers += ["Most throughput"]
+    show_time = bool(config.drain) and len(strategies) >= 2
+    if show_time:
+        first = data["points"][0]["time_saved"][0]
+        headers += [f"Walkers save s ({first['by']})", "Fastest for walkers"]
     rows = []
     for point in data["points"]:
         sums = {s: point["strategies"][s]["summary"] for s in strategies}
@@ -234,8 +274,14 @@ def cmd_sweep(args: argparse.Namespace, out: TextIO) -> None:
             row += [_fmt(sums[s][metric]["mean"], "{:.1f}", sums[s][metric]["ci95"])
                     for s in strategies]
         row.append(winner({s: sums[s]["throughput_per_min"] for s in strategies}))
+        if show_time:
+            saved = point["time_saved"][0]
+            row += [_fmt(saved["cares"]["mean"], "{:.1f}", saved["cares"]["ci95"]),
+                    time_winner(saved)]
         rows.append(row)
     out.write(render_table(headers, rows) + "\n")
+    if len(strategies) >= 2:
+        out.write(f"\n{WALKERS_NOTE}\n" if show_time else f"\n{DRAIN_HINT}\n")
 
 
 def cmd_strategies(args: argparse.Namespace, out: TextIO) -> None:

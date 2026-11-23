@@ -132,11 +132,12 @@ them for the strategy that leaves the longer queue.
 
 Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
 
-### 3. Time saved, paired by seed
+### 3. Time saved, paired by seed ✅
 
 - **This needs `drain = 1`.** Without it, each strategy leaves out a
-  different set of unfinished people. The time-saved output should either
-  turn the drain on or warn when it's off.
+  different set of unfinished people. The numbers are always in the JSON,
+  marked `drained`, but the command line shows them only with `--drain 1`
+  and prints a hint otherwise.
 - With the drain, both strategies measure the **same people** for a given
   seed. So the per-person average saving is exactly
   `trip_mean_cares(stand-both) − trip_mean_cares(walk-left)` for that seed. No
@@ -154,12 +155,14 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
 
 - **CLI `compare` / `sweep`:**
   - Trip-by-group columns in the results table.
-  - A line per strategy pair, e.g. "walk-left saves people who care 42.1 ±
-    3.0 s per trip; people who don't care lose 10.7 ± 2.2 s".
-  - A second winner rule on `trip_mean_cares`, lowest wins. This needs
-    `winner()` to support "lower is better".
+  - A line per strategy pair, e.g. "walk-left vs stand-both: walkers save
+    41.7 ±7.4 s per trip; others lose 10.2 ±5.1 s". ✅
+  - A "Fastest for walkers" winner (`report.time_winner`). ✅ It uses the
+    paired saving and its margin of error, rather than the lowest
+    `trip_mean_cares`, so it agrees with the time-saved line and doesn't call
+    a tie when the paired margin shows a clear difference.
 - **CSV/JSON (`report.py`):** the new per-run fields as columns, plus the
-  `time_saved` summary in JSON. The GUI downloads stay identical to the CLI
+  `time_saved` summary in JSON. ✅ The GUI downloads stay identical to the CLI
   output, because both use `report.py`.
 - **GUI experiments view:**
   - The new rows in the results table.
@@ -212,8 +215,8 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
 
 1. ✅ **Drain phase and trip by group** in the engine and `summarize()`, with
    tests. The drain is optional (`drain`, off by default).
-2. **Paired time saved** in `experiments.py` and `report.py`. CLI tables and
-   CSV/JSON. The "lower is better" winner rule.
+2. ✅ **Paired time saved** in `experiments.py` and `report.py`. CLI tables and
+   CSV/JSON. The "Fastest for walkers" winner rule. Shown with `--drain 1`.
 3. **GUI:** experiments table rows, the time-saved chart and winner, and the
    live-view stats.
 4. **Write-up:** run the sweeps above at the Holborn settings and record the
