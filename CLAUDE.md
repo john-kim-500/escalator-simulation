@@ -11,6 +11,31 @@ Agent-based simulation testing whether an escalator moves more people when every
 - **Be terse:** prefer short, direct sentences. Cut filler and repetition.
 - **No jargon:** readers may know software, math or civil engineering, but not all three. Avoid terms from any of them (e.g. "deque", "O(n)", "Poisson process", "headway", "throughput"). Say it plainly: "people per minute", "minimum time between two people stepping on". Code names are fine in `code font` with a plain explanation.
 
+## Coding standards
+
+These describe how the existing code is written. Follow them in new code. Nothing checks them automatically.
+
+**All code**
+- Lines are 100 characters or less. URLs and strings that can't be split are the only exceptions.
+- Every file opens with a short comment or docstring saying what it is for.
+- Comments explain why, not what. Keep them short.
+- Spelling in comments and on-screen text is American. Don't rename existing code names just to fix spelling.
+- Errors shown to users are short, lowercase and say what to fix (e.g. `"walk-left needs at least 2 lanes"`).
+- New behavior comes with a test. Keep tests fast (`duration=180, warmup=60`).
+
+**Python**
+- Start each module with `from __future__ import annotations`. Add type hints to function arguments and return values.
+- Double quotes. `snake_case` for functions and variables, `PascalCase` for classes, `UPPER_CASE` for constants. Prefix internal names with `_`.
+- Raise `ValueError` for bad input. Settings checks collect every problem and report them together, not one at a time.
+- Tests use `unittest`, grouped into classes by topic.
+
+**JavaScript**
+- ES modules with named exports. `const` by default, `let` when the value changes, never `var`.
+- Double quotes, semicolons, two-space indent. `camelCase` for functions and variables, `PascalCase` for classes, `UPPER_CASE` for constants.
+- `/** ... */` comments on exported functions and on anything non-obvious.
+- Use `el()` from `dom.js` to build page elements.
+- Tests use `node:test` with `node:assert/strict`.
+
 ## Commands
 
 ```bash
