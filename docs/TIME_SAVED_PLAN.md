@@ -1,0 +1,223 @@
+# Time Saved Plan: Measure What Walking Is Worth
+
+So far the simulator answers one question: which strategy moves **more people
+per minute**? This plan adds a second one: **for the passengers who care, how
+much time does each strategy save them?** It builds on the model in
+[PLAN.md](PLAN.md) and the calibration in `tests/test_calibration.py`.
+
+## Goals
+
+1. **Trip time by group:** for the passengers who want to walk ("cares") and
+   for everyone else ("don't care"), measure the time from arriving at the
+   bottom to reaching the top.
+2. **Time saved:** for each "cares" passenger, the trip time under stand-both
+   minus the trip time under walk-left, on the same crowd. Report the cost (or
+   gain) to the "don't care" group next to it.
+3. **Count everyone who arrives:** nobody who arrives during the measured
+   window is left out because the run ended before they reached the top.
+4. **Show it everywhere:** CLI tables, CSV/JSON, and the GUI's live and
+   experiments views, with a "most time saved" winner beside the throughput
+   winner.
+
+**Not in this plan:** overtaking in the walk lane, mixed queues at the bottom
+(the model still has one queue per lane), and costs such as safety or comfort.
+
+## Assumptions
+
+- **"Cares" means `wants_to_walk`.** It's a person's intent, drawn on arrival
+  with probability `walk_fraction`. Under stand-both these people stand like
+  everyone else, but they are still the "cares" group.
+- **"Don't care" people mostly stand on the standing side.** Some stand in the
+  walk lane instead. That's the existing `blocker_rate`: the share of
+  don't-care people who stand in the walk lane under walk-left.
+- **Defectors count as "don't care".** These are standers who switch to
+  walking when their queue is long (`defect_threshold`, `defect_prob`). They
+  walk because of the queue, not because they were in a hurry, so they're
+  grouped by intent.
+
+## What the engine already provides
+
+- Every `Person` has `wants_to_walk`, `arrival_time`, `board_time` and
+  `exit_time`. Trip time is simply `exit_time - arrival_time`.
+- The same seed gives the **same crowd under every strategy**: the same
+  arrival times, the same `wants_to_walk` and the same walking speeds (see
+  "Determinism" in [APP_DESIGN.md](APP_DESIGN.md#determinism)). So person `i` is the
+  same passenger under both strategies, and the comparison is per person, not
+  just between group averages.
+- `blocker_rate` already models don't-care people standing in the walk lane.
+
+## Early numbers (to set direction, not to quote)
+
+A throwaway script on the Holborn settings, averaged over seeds 1–3:
+- 23.4 m rise, 45% want to walk
+- belt 0.72 m/s, steps 0.4 m
+- 180 s warm-up, 900 s run
+
+Trip time is from arriving at the bottom to reaching the top.
+
+| Arrivals /min | Blockers | Cares: walk-left | Cares: stand-both | **Saved per person** | Don't care: walk-left | Don't care: stand-both |
+|---|---|---|---|---|---|---|
+| 60 | 0% | 36 s | 65 s | **+29 s** | 66 s | 65 s |
+| 90 | 0% | 38 s | 66 s | **+28 s** | 69 s | 66 s |
+| 110 | 0% | 40 s | 82 s | **+42 s** | 71 s | 82 s |
+| 130 | 0% | 57 s | 150 s | **+93 s** | 90 s | 150 s |
+| 60 | 5% | 47 s | 65 s | **+19 s** | 66 s | 65 s |
+| 90 | 5% | 57 s | 66 s | **+9 s** | 68 s | 66 s |
+| 110 | 5% | 95 s | 82 s | **−13 s** | 96 s | 82 s |
+| 130 | 5% | 169 s | 147 s | **−22 s** | 164 s | 147 s |
+
+These numbers leave out everyone who hadn't reached the top when the run
+ended. At 130 arrivals/min that's up to 189 of the "cares" group, and the
+count differs between the strategies, so the overloaded rows are biased.
+Fixing this is step 1 of the plan.
+
+What they suggest:
+- **With no blockers, walk-left saves the "cares" group 30–90 s per trip**,
+  while throughput barely differs between the strategies at these rates.
+- **A few blockers flip the result.** There's no overtaking, so one person
+  standing in the walk lane slows every walker behind them for the whole ride.
+  At 5% blockers and 110+ arrivals/min, stand-both is faster even for the
+  people who want to walk. `blocker_rate` is likely as important as
+  `arrival_rate`, so it should be swept rather than left at its default of 0.
+
+## Changes needed in the engine
+
+### 1. Let everyone who arrives finish (drain phase)
+
+**Problem:** `summarize()` takes trip times only from people who reached the
+top. People still queueing or riding when the run ends are left out. When the
+escalator is overloaded, that hides the longest trips, and it hides more of
+them for the strategy that leaves the longer queue.
+
+**Change:** the measured group is everyone who arrives during
+`[warmup, duration]`.
+- After `duration`, stop new arrivals and keep stepping until every member of
+  that group has reached the top.
+- Throughput and queue statistics stay measured over `[warmup, duration]`
+  exactly as now. Only trip times use the drain.
+
+**Why this doesn't change the answer:**
+- Queues are first come, first served, and nobody overtakes. So a later
+  arrival can never change an earlier person's trip.
+- Defectors and blockers decide on arrival, from the queue lengths at that
+  moment.
+- So running on with no new arrivals gives exactly the trip times the group
+  would have had in an endless run.
+
+**Details:**
+- `run()` gains the drain; `step()` stays the same.
+- There's a safety cap on drain length, with a warning in the results if it's
+  hit (for example, the arrival rate is far above capacity).
+- The live view stops at `duration` as now. Drain results only matter for
+  final results and experiments.
+- The existing `trip_mean`/`trip_p95` switch to the full measured group. That
+  is a deliberate fix, and outputs shift mainly in overloaded runs. Note it in
+  the changelog/README.
+
+### 2. Trip time by group
+
+`summarize()` adds:
+
+| Field | Meaning |
+|---|---|
+| `trip_mean_cares`, `trip_p95_cares` | Trip time for `wants_to_walk` passengers |
+| `trip_mean_others`, `trip_p95_others` | Trip time for everyone else (including blockers and defectors) |
+| `cares_count`, `others_count` | Size of each group (the same for every strategy on the same seed) |
+
+Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
+
+### 3. Time saved, paired by seed
+
+- With the drain, both strategies measure the **same people** for a given
+  seed. So the per-person average saving is exactly
+  `trip_mean_cares(stand-both) − trip_mean_cares(walk-left)` for that seed. No
+  per-person data has to leave the engine.
+- In `collect_compare`/`collect_sweep`, add a `time_saved` section for each
+  pair of strategies. It holds the per-seed differences for both groups, and
+  their mean and 95% CI computed on those differences.
+- That paired CI is much tighter than combining two independent CIs, because
+  the crowd-to-crowd noise cancels.
+- A per-person distribution (e.g. "90% of walkers saved at least X s") would
+  need per-person trip times, which is too much data to send to the GUI. Leave
+  it as an option for later (see Open questions).
+
+## Output
+
+- **CLI `compare` / `sweep`:**
+  - Trip-by-group columns in the results table.
+  - A line per strategy pair, e.g. "walk-left saves people who care 42.1 ±
+    3.0 s per trip; people who don't care lose 10.7 ± 2.2 s".
+  - A second winner rule on `trip_mean_cares`, lowest wins. This needs
+    `winner()` to support "lower is better".
+- **CSV/JSON (`report.py`):** the new per-run fields as columns, plus the
+  `time_saved` summary in JSON. The GUI downloads stay identical to the CLI
+  output, because both use `report.py`.
+- **GUI experiments view:**
+  - The new rows in the results table.
+  - A "Time saved" chart: per-person saving against the swept value, with
+    error bars.
+  - The "most time saved" winner shown next to the throughput winner.
+- **GUI live view:**
+  - "Average trip so far" for each group in the stats table, from new
+    running counters in `live_stats()`.
+  - A time-saved row in the final results when exactly two strategies are
+    shown.
+
+## Experiments this enables
+
+- **Sweep `arrival_rate`** at Holborn settings: where does the walkers'
+  saving peak, and where do the don't-care group's losses outweigh it?
+- **Sweep `blocker_rate`** from 0 to 10%: how many people standing in the walk
+  lane cancel the benefit of walk-left?
+- **Sweep `walk_fraction`**: whether there's a share of walkers where
+  walk-left helps both groups.
+- **Total time:** the saving for the "cares" group times its size, minus the
+  loss for the "don't care" group times its size. This gives the net
+  person-seconds per minute, a single figure to set against throughput.
+
+## Testing
+
+- **Group sizes:** `cares_count` and `others_count` match between strategies
+  for the same seed, and sum to the measured group.
+- **Drain is complete:** every measured person has an `exit_time` after
+  `run()`.
+- **Drain doesn't bias trips:** for a run with spare capacity, trip times of
+  people who finish before `duration` are the same with and without the drain.
+- **Paired equals per-person:** for one seed, the `time_saved` mean equals the
+  average of per-person differences computed directly from `Simulation.people`.
+- **Directional checks:**
+  - With `blocker_rate = 0` and spare capacity, the walk-left saving for the
+    "cares" group is positive and close to the ride-time difference (see the
+    formula below).
+  - With everyone standing (`walk_fraction = 0`), the "cares" group is empty
+    and the metric is `None`, not an error.
+
+  The ride-time difference is `length / belt_speed − length / (belt_speed +
+  mean walk speed)`.
+- **Front ends:** the Python–Pyodide cross-check in
+  `web/tests/engine.test.mjs` covers the new fields, and
+  `tests/test_web_support.py` checks that `Session` gives the same
+  `time_saved` as `compare()`.
+
+## Milestones
+
+1. **Drain phase and trip by group** in the engine and `summarize()`, with
+   tests. The existing `trip_mean` fix lands here.
+2. **Paired time saved** in `experiments.py` and `report.py`. CLI tables and
+   CSV/JSON. The "lower is better" winner rule.
+3. **GUI:** experiments table rows, the time-saved chart and winner, and the
+   live-view stats.
+4. **Write-up:** run the sweeps above at the Holborn settings and record the
+   findings, including the throughput and time-saved figures side by side.
+
+## Open questions
+
+- **Saving distribution:** is an average enough, or do we want "X% of walkers
+  saved at least Y s"? The second needs per-person trip times in the results.
+  That's fine on the CLI, but heavy for the GUI with many replications.
+- **Default `blocker_rate`:** should it stay at 0, or move to an observed
+  value? It matters a lot here, so it needs a source, like the
+  [walk_gap calibration](../tests/test_calibration.py) had.
+- **Overtaking:** the model has none, which is what makes blockers so costly.
+  If the blocker results turn out to drive the conclusion, overtaking (or
+  walkers stepping around blockers) may deserve its own plan.
