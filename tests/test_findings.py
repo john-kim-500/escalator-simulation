@@ -30,8 +30,8 @@ class QuickRun(unittest.TestCase):
         out = io.StringIO()
         self.assertEqual(findings.main(["--quick", "--jobs", "0"], out=out), 0)
         text = out.getvalue()
-        self.assertEqual(text.count("\n### "), len(findings.SWEEPS) + 2)
-        self.assertEqual(text.count("| Walkers save s |"), len(findings.SWEEPS) + 2)
+        self.assertEqual(text.count("\n### "), len(findings.SWEEPS) + 3)
+        self.assertEqual(text.count("| Walkers save s |"), len(findings.SWEEPS) + 3)
         self.assertIn("drain=1", text)
 
 
