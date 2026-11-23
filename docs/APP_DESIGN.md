@@ -56,7 +56,7 @@ That one decision shapes the rest of the design:
 
 | Layer | Files | Owns | Never does |
 |---|---|---|---|
-| Model | `config.py`, `person.py`, `strategies.py`, `engine.py`, `metrics.py` | The simulation and its statistics | I/O, timing, formatting |
+| Model | `config.py`, `person.py`, `draws.py`, `strategies.py`, `engine.py`, `metrics.py` | The simulation and its statistics | I/O, timing, formatting |
 | Batch runs | `experiments.py` | Splitting experiments into independent jobs and putting the results back together | Deciding *how* jobs run |
 | Output | `report.py` | Winner/tie rule, CSV and JSON text | Printing or saving files |
 | Front-end API | `session.py` | One front end's state; JSON in and out | Anything the CLI also needs (that lives lower down) |
@@ -298,6 +298,9 @@ These tests guard the boundaries described above:
   differ in the last digits, because Pyodide's Python 3.14 sums floats
   differently from 3.11.
 - `web/tests/helpers.test.mjs`: the pure JavaScript helpers.
+- `tests/test_engine.py` (`RandomDraws`, `Reproducibility`): pins a few
+  random values, and checks that a new random choice leaves the crowd and
+  every existing choice unchanged.
 - `tests/test_calibration.py`: checks the engine against measured London
   Underground flows. It uses explicit settings, so it keeps working if the
   defaults change.
@@ -308,6 +311,7 @@ These tests guard the boundaries described above:
 |---|---|---|
 | New parameter | `SimConfig` field, `PARAM_INFO` entry, validation | `info` → config panel, sweep list, CLI flags |
 | New strategy | `Strategy` subclass with `@register` in `strategies.py` | `info.strategies` → checkboxes in both views, CLI choices |
+| New random choice | A new purpose constant in `draws.py`, drawn with `person.id` as the index | Nothing else: existing crowds and results stay the same |
 | New per-person label | `KINDS` plus the strategy's `kind()`, then a `--kind-*` color and a shape in `escalator-canvas.js` | `info.kinds` → legend |
 | New result metric | `metrics.summarize` / `aggregate`; columns in `report.py` | CSV/JSON automatically; GUI tables list their metrics explicitly |
 | New engine module | Add the `.py` file **and** add it to `web/manifest.json` | Pyodide file system on load |

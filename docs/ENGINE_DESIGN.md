@@ -2,9 +2,9 @@
 
 This document explains how the simulation itself works, step by step. The code
 is mainly in `escalator_sim/engine.py`, with help from `person.py`,
-`strategies.py` and `metrics.py`. For how the simulation connects to the
-browser app, see `APP_DESIGN.md`. For *why* the model is built this way, see
-`PLAN.md`.
+`strategies.py`, `draws.py` (random numbers) and `metrics.py`. For how the
+simulation connects to the browser app, see `APP_DESIGN.md`. For *why* the
+model is built this way, see `PLAN.md`.
 
 The last sections list possible changes to the code and open questions. They
 are a starting point for discussion, not an agreed plan.
