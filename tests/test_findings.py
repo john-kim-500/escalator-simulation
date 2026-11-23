@@ -25,14 +25,24 @@ class NetSaving(unittest.TestCase):
         self.assertAlmostEqual(stats["mean"], (60.0 / 10 + 70.0 / 10) / 2)
 
 
+class PairedChange(unittest.TestCase):
+    def test_matches_runs_by_seed(self):
+        before = [{"seed": 1, "throughput_per_min": 100.0}, {"seed": 2, "throughput_per_min": 90.0}]
+        after = [{"seed": 2, "throughput_per_min": 92.0}, {"seed": 1, "throughput_per_min": 101.0}]
+        stats = findings.paired_change(before, after)
+        self.assertEqual(stats["n"], 2)
+        self.assertAlmostEqual(stats["mean"], 1.5)
+
+
 class QuickRun(unittest.TestCase):
     def test_prints_every_table(self):
         out = io.StringIO()
         self.assertEqual(findings.main(["--quick", "--jobs", "0"], out=out), 0)
         text = out.getvalue()
-        self.assertEqual(text.count("\n### "), len(findings.SWEEPS) + 3)
-        self.assertEqual(text.count("| Walkers save s |"), len(findings.SWEEPS) + 3)
+        self.assertEqual(text.count("\n### "), len(findings.SWEEPS) + 5)
+        self.assertEqual(text.count("| Walkers save s |"), len(findings.SWEEPS) + 4)
         self.assertIn("drain=1", text)
+        self.assertEqual(text.count("same crowds |"), 2)
 
 
 if __name__ == "__main__":

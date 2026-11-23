@@ -63,13 +63,14 @@ For the time saved by walkers and standers in two short tables, see
 - **±:** the 95% margin of error over the 20 crowds. "Fastest for walkers" and
   "Most people/min" name a rule only when it leads by more than that margin.
 
-To make the tables again (about a minute on 16 cores):
+To make the tables again (about 3 minutes on 16 cores):
 
 ```bash
 python3 -m docs.findings > findings.md
 ```
 
-Section 7 of the script's output is in [Against another model](#against-another-model).
+Section 7 of the script's output is in [Against another model](#against-another-model),
+and sections 8–9 are in [Double-checks](#double-checks).
 
 The script printed:
 
@@ -150,7 +151,9 @@ slower under walk-left than if everyone stood on both sides.
   lose minutes per trip.
 - **Around 50% walkers**, the two lanes carry about the same load, and
   others' loss is within the margin of error. **At 60%** walk-left helps
-  everyone: others save 15 s too.
+  everyone: others save 15 s too. Most of that comes from the model's standing
+  lane being about 7% low. With it matched to Davis & Dutta, walk-left only
+  ties at 55–60%, and others save 1–3 s (see [Double-checks](#double-checks)).
 - **At 70%**, the walk lane itself fills up, and walkers gain nothing.
 - At Holborn's height, about 45% walk (Davis & Dutta). That's between 40%,
   where walk-left costs people time in total, and 50%, where it saves time.
@@ -234,6 +237,8 @@ Each point below says which rule it likely favors.
   ([RESEARCH.md](RESEARCH.md#davis--dutta-2002-counts-at-10-london-stations)).
   Stand-both has two standing lanes, so this likely understates
   stand-both's people per minute more than walk-left's (it favors walk-left).
+  It's enough to change section 4's answer at 55–60% walkers (see
+  [Double-checks](#double-checks)).
 - **Walkers step on like standers.** This slightly reduces walkers' saving
   (see the open questions in [ENGINE_DESIGN.md](ENGINE_DESIGN.md#open-questions)).
   It favors stand-both, by a little.
@@ -301,3 +306,68 @@ low estimate of the gain at the peak. Real counts sit between the two models:
 Davis & Dutta measured about 106 per minute under walk-left at this height,
 and the Holborn report counted 27% more people in an hour on the escalator
 where everyone stood.
+
+## Double-checks
+
+Two small effects in the tables above looked new, so they were checked with
+more crowds. These tables compare each crowd with itself under the other
+setting ("same crowds"), which shows small differences far more clearly than
+comparing two averages. Neither effect holds up.
+
+### 8. Walk-left at 55–60% walkers, with the standing lane matched to Davis & Dutta
+
+Section 4 shows walk-left moving more people than stand-both at 55–60%
+walkers, with others saving time too. The model's standing lane carries 54 per
+minute (0.80 m between standers). Davis & Dutta counted 58.4 per minute on the
+standing side at 23.4 m, which is 0.74 m. All at 110 per minute, 100 crowds:
+
+| standing lane | walk_fraction | stand-both people/min | walk-left people/min | Walk-left extra people/min, same crowds | Walkers save s | Others save s |
+|---|---|---|---|---|---|---|
+| 0.80 m (54.0/min) | 45% | 107.2 ±0.3 | 103.4 ±0.4 | −3.8 ±0.4 | +45.3 ±2.1 | −53.0 ±3.5 |
+| 0.80 m (54.0/min) | 50% | 107.2 ±0.3 | 108.3 ±0.5 | +1.1 ±0.4 | +44.3 ±2.1 | −6.2 ±2.3 |
+| 0.80 m (54.0/min) | 55% | 107.2 ±0.3 | 110.0 ±0.5 | +2.8 ±0.4 | +42.9 ±2.0 | +13.2 ±1.9 |
+| 0.80 m (54.0/min) | 60% | 107.2 ±0.3 | 110.0 ±0.6 | +2.8 ±0.5 | +39.9 ±1.9 | +16.9 ±2.1 |
+| 0.80 m (54.0/min) | 65% | 107.2 ±0.3 | 108.9 ±0.5 | +1.7 ±0.4 | +29.4 ±1.6 | +17.9 ±2.1 |
+| 0.74 m (58.4/min) | 45% | 110.0 ±0.6 | 107.3 ±0.4 | −2.7 ±0.4 | +30.2 ±0.4 | −28.6 ±3.2 |
+| 0.74 m (58.4/min) | 50% | 110.0 ±0.6 | 109.9 ±0.5 | −0.2 ±0.2 | +29.2 ±0.4 | −3.9 ±1.0 |
+| 0.74 m (58.4/min) | 55% | 110.0 ±0.6 | 110.1 ±0.6 | +0.1 ±0.2 | +27.7 ±0.4 | +1.3 ±0.4 |
+| 0.74 m (58.4/min) | 60% | 110.0 ±0.6 | 110.0 ±0.6 | −0.0 ±0.2 | +24.7 ±0.4 | +2.6 ±0.4 |
+| 0.74 m (58.4/min) | 65% | 110.0 ±0.6 | 108.9 ±0.5 | −1.1 ±0.3 | +14.2 ±1.7 | +3.2 ±0.4 |
+
+- **With the matched standing lane, walk-left only ties at 55–60% walkers.**
+  The gain of about 3 per minute came from the model's standing lane being
+  too small.
+- **What's left is a narrow band where walk-left costs nobody time.** At
+  55–60%, walkers save about 25–28 s, and others gain 1–3 s.
+- **At Holborn's 45%, the original answer stands.** Walk-left carries about 3
+  fewer people per minute, and others lose about 29 s.
+- At 120 per minute, walk-left still wins at 55–60% walkers, but that means
+  66–72 people per minute walking, against about 47 that Davis & Dutta saw at
+  this height.
+
+### 9. A few blockers, with 200 crowds
+
+Section 3 shows 1–2% blockers raising walk-left from 103.4 to 104.4 people per
+minute at 110 arrivals, within the margin of error. Walk-left only, with the
+model's standing lane:
+
+| arrival_rate | blocker_rate | walk-left people/min | Change from 0% blockers, same crowds | walk lane people/min | standing lane people/min |
+|---|---|---|---|---|---|
+| 100 | 0% | 98.0 ±0.3 | +0.0 ±0.0 | 44.7 ±0.3 | 53.3 ±0.1 |
+| 100 | 1% | 98.2 ±0.4 | +0.3 ±0.1 | 45.2 ±0.3 | 53.1 ±0.2 |
+| 100 | 2% | 98.5 ±0.4 | +0.6 ±0.2 | 45.7 ±0.3 | 52.9 ±0.2 |
+| 100 | 5% | 98.6 ±0.3 | +0.6 ±0.2 | 46.7 ±0.2 | 51.9 ±0.2 |
+| 110 | 0% | 103.2 ±0.3 | +0.0 ±0.0 | 49.2 ±0.3 | 54.0 ±0.0 |
+| 110 | 1% | 103.7 ±0.3 | +0.5 ±0.2 | 49.7 ±0.3 | 54.0 ±0.0 |
+| 110 | 2% | 103.6 ±0.3 | +0.4 ±0.2 | 49.7 ±0.3 | 53.9 ±0.0 |
+| 110 | 5% | 102.5 ±0.2 | −0.7 ±0.3 | 48.7 ±0.1 | 53.8 ±0.1 |
+| 120 | 0% | 107.7 ±0.3 | +0.0 ±0.0 | 53.7 ±0.3 | 54.0 ±0.0 |
+| 120 | 1% | 107.8 ±0.3 | +0.1 ±0.2 | 53.8 ±0.3 | 54.0 ±0.0 |
+| 120 | 2% | 106.0 ±0.3 | −1.7 ±0.3 | 52.0 ±0.3 | 54.0 ±0.0 |
+| 120 | 5% | 103.0 ±0.1 | −4.7 ±0.3 | 49.0 ±0.1 | 54.0 ±0.0 |
+
+- **The rise is real, but under 1 per minute.** At 110 per minute, 1%
+  blockers add about 0.5. They move a few standers into the walk lane, which
+  has room.
+- **From 2–5% blockers, the total falls.** The busier it is, the sooner: at
+  120 per minute, 2% blockers cost about 1.7 per minute and 5% cost 4.7.

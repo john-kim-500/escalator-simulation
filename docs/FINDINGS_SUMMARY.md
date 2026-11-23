@@ -85,10 +85,11 @@ minute. Percentages compare walk-left with stand-both.
   arrives. Blockers change who waits, not how many get through.
 - **At 110/min, stand-both moves 3–5% more people,** 3–6 more per minute. Under
   walk-left, the single standing lane is the limit: it carries 54 per minute.
-- **A few blockers help a little, then hurt.** At 110/min, 1–2% blockers raise
-  walk-left from 103.4 to 104.4, because they move standers from the full
-  standing line into the walk lane, which has room. From 5%, they slow the walk
-  lane enough that the total falls.
+- **More than a few blockers lower people per minute.** At 110/min, 1–2%
+  blockers change walk-left's total by under 1 per minute. From 5%, they slow
+  the walk lane enough that the total falls. The 103.4 to 104.4 rise in the
+  table is mostly noise: with 200 crowds, it's about 0.5 per minute (section 9
+  of [FINDINGS.md](FINDINGS.md)).
 - **Walk-left moves more people only at a sustained 130/min with no blockers,**
   and only because 45% keep walking. With walking held at the rate Davis &
   Dutta measured, walk-left carries about 101 per minute at both 110 and 130, so

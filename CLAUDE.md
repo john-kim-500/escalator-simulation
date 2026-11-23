@@ -49,7 +49,7 @@ npm run lint:fix                                               # fix what the ch
 
 python3 -m escalator_sim compare -n 20                         # CLI; see --help on run/compare/sweep
 python3 -m http.server 8000                                    # from repo root, then open http://localhost:8000/web/
-python3 -m docs.findings > findings.md                         # remake the tables in docs/FINDINGS.md (~1 min)
+python3 -m docs.findings > findings.md                         # remake the tables in docs/FINDINGS.md (~3 min)
 ```
 
 There is no build step and no automatic formatter. `npm run lint:fix` fixes quotes, import order, `let`/`const` and indentation; fix the rest (mostly long lines and type hints) by hand. The web GUI is plain ES modules served as static files. Style settings live in `pyproject.toml` (Ruff only; it is not a package build file) and `eslint.config.js`.

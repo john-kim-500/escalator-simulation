@@ -2,7 +2,7 @@
 
 Run from the project folder:
 
-    python3 -m docs.findings              # full run, about a minute on 16 cores
+    python3 -m docs.findings              # full run, about 3 minutes on 16 cores
     python3 -m docs.findings --quick      # short runs and 2 seeds, to check it works
 
 Prints Markdown. Each table compares stand-both with walk-left on the same
@@ -50,6 +50,18 @@ DAVIS_DUTTA_2002_CAPPED_ARRIVALS = [110, 120, 130, 140, 150]
 # explain. Everything else stays as in DAVIS_DUTTA_2002_HOLBORN.
 FILIPPIDIS_2025 = dict(rise=23.75, belt_speed=0.75, walk_gap=1.2, walk_fraction=0.40)
 FILIPPIDIS_2025_ARRIVALS = [40, 70, 90, 100, 120]
+# Tables 8-9 double-check two small effects, so they use more crowds than -n, and compare the
+# same crowds directly (paired) to see small differences. Table 8: does walk-left still win at
+# 55-60% walkers once the standing lane carries what Davis & Dutta counted at 23.4 m
+# (41.27 + 0.73 x 23.4 = 58.4/min, not the model's 54)?
+DAVIS_DUTTA_2002_STAND_GAP = 0.72 * 60 / (41.27 + 0.73 * 23.4)
+STAND_GAPS = [0.8, DAVIS_DUTTA_2002_STAND_GAP]
+CHECK_WALK_SHARES = [0.45, 0.5, 0.55, 0.6, 0.65]
+CHECK_WALK_REPLICATIONS = 100
+# Table 9: do 1-2% blockers really add people per minute under walk-left?
+CHECK_BLOCKER_ARRIVALS = [100, 110, 120]
+CHECK_BLOCKERS = [0.0, 0.01, 0.02, 0.05]
+CHECK_BLOCKER_REPLICATIONS = 200
 
 # (heading, swept parameter, its values, fixed settings)
 SWEEPS: list[tuple[str, str, list[float], dict[str, float]]] = [
@@ -87,6 +99,18 @@ def net_saving_per_min(point: dict[str, Any]) -> dict[str, float | None]:
     return mean_ci(values)
 
 
+def paired_change(before: Sequence[dict[str, Any]],
+                  after: Sequence[dict[str, Any]]) -> dict[str, float | None]:
+    """Change in people per minute from one set of runs to another, crowd by crowd.
+
+    Runs are matched by seed, so each difference compares the same arrivals. This is much
+    tighter than comparing the two averages when the change is small.
+    """
+    by_seed = {run["seed"]: run["throughput_per_min"] for run in before}
+    return mean_ci([run["throughput_per_min"] - by_seed[run["seed"]] for run in after
+                    if run["seed"] in by_seed])
+
+
 def _fmt(stats: dict[str, float | None], digits: int = 1, sign: bool = True) -> str:
     if stats["mean"] is None:
         return "–"
@@ -119,6 +143,10 @@ def table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> str:
 
 def _label(param: str, value: float) -> str:
     return f"{value:.0%}" if param in ("blocker_rate", "walk_fraction") else f"{value:g}"
+
+
+def _lane_label(gap: float, belt_speed: float) -> str:
+    return f"{gap:.2f} m ({belt_speed * 60 / gap:.1f}/min)"
 
 
 def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
@@ -170,6 +198,50 @@ def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
         shown = ", ".join(f"{k}={v:g}" for k, v in FILIPPIDIS_2025.items())
         out.write(f"\n### {len(SWEEPS) + 3}. With Filippidis et al.'s settings ({shown}), "
                   f"no blockers\n\n{table(['arrival_rate', *HEADERS], rows)}\n")
+
+        reps_walk = 2 if args.quick else CHECK_WALK_REPLICATIONS
+        rows = []
+        for gap in STAND_GAPS:
+            config = base.with_changes(stand_gap=gap, arrival_rate=110)
+            points = sweep(config, "walk_fraction", CHECK_WALK_SHARES, STRATEGIES, reps_walk,
+                           map_fn=map_fn)["points"]
+            for p in points:
+                sb, wl = (p["strategies"][s] for s in STRATEGIES)
+                rows.append([
+                    _lane_label(gap, base.belt_speed), _label("walk_fraction", p["value"]),
+                    _fmt(sb["summary"]["throughput_per_min"], sign=False),
+                    _fmt(wl["summary"]["throughput_per_min"], sign=False),
+                    _fmt(paired_change(sb["runs"], wl["runs"])),
+                    _fmt(p["time_saved"][0]["cares"]), _fmt(p["time_saved"][0]["others"]),
+                ])
+        headers = ["standing lane", "walk_fraction", "stand-both people/min",
+                   "walk-left people/min", "Walk-left extra people/min, same crowds",
+                   "Walkers save s", "Others save s"]
+        out.write(f"\n### {len(SWEEPS) + 4}. Share who want to walk, at 110 arrivals/min, "
+                  f"with the standing lane matched to Davis & Dutta; {reps_walk} seeds\n\n"
+                  f"{table(headers, rows)}\n")
+
+        reps_block = 2 if args.quick else CHECK_BLOCKER_REPLICATIONS
+        rows = []
+        for rate in CHECK_BLOCKER_ARRIVALS:
+            config = base.with_changes(arrival_rate=rate)
+            points = sweep(config, "blocker_rate", CHECK_BLOCKERS, ["walk-left"], reps_block,
+                           map_fn=map_fn)["points"]
+            none = points[0]["strategies"]["walk-left"]["runs"]
+            for p in points:
+                wl = p["strategies"]["walk-left"]
+                rows.append([
+                    f"{rate:g}", _label("blocker_rate", p["value"]),
+                    _fmt(wl["summary"]["throughput_per_min"], sign=False),
+                    _fmt(paired_change(none, wl["runs"])),
+                    _fmt(wl["summary"]["throughput_lane0"], sign=False),
+                    _fmt(wl["summary"]["throughput_lane1"], sign=False),
+                ])
+        headers = ["arrival_rate", "blocker_rate", "walk-left people/min",
+                   "Change from 0% blockers, same crowds", "walk lane people/min",
+                   "standing lane people/min"]
+        out.write(f"\n### {len(SWEEPS) + 5}. A few blockers, walk-left only; {reps_block} "
+                  f"seeds\n\n{table(headers, rows)}\n")
     finally:
         if pool:
             pool.shutdown()
