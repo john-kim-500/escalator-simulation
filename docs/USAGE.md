@@ -40,12 +40,15 @@ python3 -m escalator_sim compare
 Escalator 30.0 m long (15 m rise), belt 0.75 m/s; 120 arrivals/min, 25% want to walk; measured 480 s after 120 s warm-up.
 10 replications per strategy (seeds 1-10); values are mean ±95% CI.
 
-Strategy    Thru/min    Wait avg s  Wait p95 s  Trip avg s  Max queue  Queue end  Walked
-----------  ----------  ----------  ----------  ----------  ---------  ---------  ------
-stand-both  112.2 ±0.5  24.3 ±6.7   39.5 ±9.3   63.4 ±6.9   89 ±18     85 ±17     0%
-walk-left   112.8 ±1.0  27.0 ±6.6   73.5 ±18.0  55.8 ±5.7   91 ±21     87 ±21     50%
+Strategy    Thru/min    Wait avg s  Wait p95 s  Trip avg s  Walkers' trip s  Others' trip s  Max queue  Queue end  Walked
+----------  ----------  ----------  ----------  ----------  ---------------  --------------  ---------  ---------  ------
+stand-both  112.2 ±0.5  24.3 ±6.7   39.5 ±9.3   63.4 ±6.9   63.3 ±7.0        63.4 ±6.9       89 ±18     85 ±17     0%
+walk-left   112.8 ±1.0  27.0 ±6.6   73.5 ±18.0  55.8 ±5.7   24.6 ±0.4        67.8 ±7.5       91 ±21     87 ±21     50%
 
 stand-both vs walk-left: throughput -0.5%, average wait -10.0%
+
+Walkers = people who want to walk, counted the same way under every strategy.
+Add --drain 1 to measure time saved for walkers.
 ```
 
 The default settings are rough guesses, not measured values (see [Parameters](#parameters)).
@@ -211,10 +214,34 @@ These set each lane's capacity. A full standing lane carries
 | **Thru/min** | People reaching the top per minute after the warm-up. **This is the main measure for testing the theory** |
 | **Wait avg s / Wait p95 s** | Time queueing at the bottom: the average, and the wait that 95% of people beat |
 | **Trip avg s** | Time from joining the queue to reaching the top |
+| **Walkers' trip s** | Average trip for people who *want* to walk. They're the same people under every strategy, even under `stand-both`, where they stand |
+| **Others' trip s** | Average trip for everyone else, including people who stand in the walk lane and standers who switch to walking |
 | **Max queue** | Longest total queue (both lanes) after the warm-up |
 | **Queue end** | People still queueing when the run stops |
 | **Walked** | Share of the people who reached the top that walked |
 | **±** | 95% margin of error across the replications (only in `compare` and `sweep`) |
+
+### Time saved for walkers
+
+With `--drain 1`, `compare` adds a line like this:
+
+```
+walk-left vs stand-both: walkers save 41.7 ±7.4 s per trip; others lose 10.2 ±5.1 s
+Fastest for walkers: walk-left
+```
+
+- **Walkers save** is how much shorter the average trip of people who want to
+  walk is under the first strategy than the second, on the same crowds.
+  **Others** is the same for everyone else. "Lose" means a longer trip.
+- The **±** comes from comparing the two strategies seed by seed. It's
+  much smaller than the margins in the table, because both strategies face
+  the same crowd.
+- **Fastest for walkers** is the strategy that saves walkers time by more than
+  the margin of error, or `tie`.
+- `sweep --drain 1` adds the same figures as two columns.
+- **Without `--drain 1`** you get a hint instead. Each strategy then leaves out
+  a different set of people who hadn't finished, so the comparison wouldn't be
+  fair (see [Finishing the line](#finishing-the-line)).
 
 Things to keep in mind:
 
@@ -287,12 +314,19 @@ python3 -m escalator_sim compare -n 20 --output json > compare.json
 **JSON** contains everything, including the full settings used:
 
 ```text
-compare:  { config, seeds, strategies: { <name>: { summary, runs[] } } }
-sweep:    { config, param, seeds, points: [ { value, strategies: { <name>: { summary, runs[] } } } ] }
+compare:  { config, seeds, strategies: { <name>: { summary, runs[] } }, time_saved[] }
+sweep:    { config, param, seeds, points: [ { value, strategies: { <name>: { summary, runs[] } }, time_saved[] } ] }
 run:      { config, result }
 ```
 
 In `summary`, each metric has the form `{ "mean": …, "ci95": …, "n": … }`.
+
+`time_saved` has one entry per pair of strategies:
+`{ by, over, drained, cares, others, per_seed: { cares[], others[] } }`.
+`cares` and `others` are `{ mean, ci95, n }` of the per-seed savings:
+`over`'s average trip minus `by`'s, for people who want to walk and for
+everyone else. Positive means `by` is faster. The numbers are only a fair
+comparison when `drained` is `true` (`--drain 1`).
 
 ## Recipes for testing the theory
 
@@ -312,6 +346,10 @@ python3 -m escalator_sim sweep --param defect_prob --values 0,0.1,0.3,0.6 -n 10 
 
 # 5. People standing in the walk lane
 python3 -m escalator_sim sweep --param blocker_rate --values 0,0.05,0.1,0.2 -n 10 -j 0
+
+# 5b. Time saved for walkers, and how a few people standing in the walk lane cancel it
+python3 -m escalator_sim compare -n 20 --drain 1
+python3 -m escalator_sim sweep --param blocker_rate --values 0,0.02,0.05,0.1 --drain 1 -n 10 -j 0
 
 # 6. How sensitive is the answer to the spacing?
 python3 -m escalator_sim sweep --param walk_gap --values 0.6,0.9,1.2,1.6 -n 10 -j 0

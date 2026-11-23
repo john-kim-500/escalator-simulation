@@ -6,6 +6,7 @@ from escalator_sim import SimConfig, Simulation, compare, sweep
 from escalator_sim.cli import main
 from escalator_sim.draws import Draws
 from escalator_sim.metrics import mean_ci, percentile
+from escalator_sim.report import time_winner
 from escalator_sim.strategies import WalkLeft
 
 SHORT = dict(duration=180.0, warmup=60.0)  # warm-up must exceed the 40 s ride
@@ -269,6 +270,74 @@ class Drain(unittest.TestCase):
         self.assertFalse(sim.drained)
 
 
+BOTH = ["stand-both", "walk-left"]
+DRAINED = dict(drain=1, **SHORT)
+
+
+class TimeSaved(unittest.TestCase):
+    """Time saved with the drain on, the only mode where it's a fair comparison."""
+
+    def test_paired_saving_equals_per_person_average(self):
+        cfg = SimConfig(walk_fraction=0.4, **DRAINED)
+        entry = compare(cfg, BOTH, 1, base_seed=3)["time_saved"][0]
+        self.assertEqual((entry["by"], entry["over"]), ("walk-left", "stand-both"))
+        self.assertTrue(entry["drained"])
+        a, b = Simulation(cfg, "stand-both", 3), Simulation(cfg, "walk-left", 3)
+        a.run(), b.run()
+        for group, wants in (("cares", True), ("others", False)):
+            saved = [(pa.exit_time - pa.arrival_time) - (pb.exit_time - pb.arrival_time)
+                     for pa, pb in zip(a.people, b.people)
+                     if pa.arrival_time >= cfg.warmup and pa.wants_to_walk == wants]
+            with self.subTest(group=group):
+                self.assertAlmostEqual(entry["per_seed"][group][0], sum(saved) / len(saved),
+                                       places=9)
+
+    def test_walkers_save_about_the_ride_difference_with_spare_capacity(self):
+        cfg = SimConfig(arrival_rate=30, blocker_rate=0, **DRAINED)
+        entry = compare(cfg, BOTH, 5)["time_saved"][0]
+        ride = cfg.length / cfg.belt_speed - cfg.length / (cfg.belt_speed + cfg.walk_speed_mean)
+        # Slightly less than `ride`: walking speeds vary (slow walkers lose more than fast
+        # ones gain) and a walker can be held up behind a slower one. Waits are near zero.
+        self.assertGreater(entry["cares"]["mean"], 0)
+        self.assertAlmostEqual(entry["cares"]["mean"], ride, delta=0.15 * ride)
+        self.assertEqual(time_winner(entry), "walk-left")
+
+    def test_empty_group_gives_none(self):
+        entry = compare(SimConfig(walk_fraction=0, **DRAINED), BOTH, 2)["time_saved"][0]
+        self.assertIsNone(entry["cares"]["mean"])
+        self.assertEqual(entry["per_seed"]["cares"], [None, None])
+        self.assertEqual(time_winner(entry), "-")
+
+    def test_sweep_has_time_saved_for_every_point(self):
+        s = sweep(SimConfig(**DRAINED), "blocker_rate", [0.0, 0.1], BOTH, 2)
+        for point in s["points"]:
+            self.assertEqual(len(point["time_saved"]), 1)
+            self.assertTrue(point["time_saved"][0]["drained"])
+
+    def test_time_winner_rule(self):
+        def entry(m, ci, drained=True):
+            return {"by": "walk-left", "over": "stand-both", "drained": drained,
+                    "cares": {"mean": m, "ci95": ci, "n": 5}}
+        self.assertEqual(time_winner(entry(10.0, 3.0)), "walk-left")
+        self.assertEqual(time_winner(entry(-10.0, 3.0)), "stand-both")
+        self.assertEqual(time_winner(entry(2.0, 3.0)), "tie")
+        self.assertEqual(time_winner(entry(10.0, None)), "-")
+        self.assertEqual(time_winner(entry(10.0, 3.0, drained=False)), "-")
+
+    def test_cli_prints_saving_and_winner(self):
+        out = io.StringIO()
+        short = ["--duration", "180", "--warmup", "60", "--drain", "1"]
+        main(["compare", "-n", "2", *short], out=out)
+        text = out.getvalue()
+        self.assertIn("walk-left vs stand-both: walkers save", text)
+        self.assertIn("Fastest for walkers:", text)
+        self.assertNotIn("Add --drain 1", text)
+        out = io.StringIO()
+        main(["sweep", "--param", "blocker_rate", "--values", "0,0.1", "-n", "2", *short],
+             out=out)
+        self.assertIn("Fastest for walkers", out.getvalue())
+
+
 class SnapshotAndResults(unittest.TestCase):
     def test_snapshot_and_results_are_json(self):
         sim = Simulation(SimConfig(**SHORT), "walk-left", 1)
@@ -329,6 +398,14 @@ class Experiments(unittest.TestCase):
         s = sweep(cfg, "walk_fraction", [0.0, 0.5], ["walk-left"], 2)
         self.assertEqual([p["value"] for p in s["points"]], [0.0, 0.5])
 
+    def test_time_saved_without_drain_is_marked_and_has_no_winner(self):
+        c = compare(SimConfig(**SHORT), ["stand-both", "walk-left"], 2)
+        self.assertEqual(len(c["time_saved"]), 1)
+        self.assertFalse(c["time_saved"][0]["drained"])
+        self.assertEqual(time_winner(c["time_saved"][0]), "-")
+        one = compare(SimConfig(**SHORT), ["walk-left"], 1)
+        self.assertEqual(one["time_saved"], [])
+
 
 class Cli(unittest.TestCase):
     def run_cli(self, *argv):
@@ -345,6 +422,16 @@ class Cli(unittest.TestCase):
         json.loads(self.run_cli("compare", "-n", "2", "--output", "json", *short))
         self.assertIn("strategy", self.run_cli("run", "--output", "csv", *short).splitlines()[0])
         self.assertIn("stand-both", self.run_cli("strategies"))
+
+    def test_without_drain_hints_instead_of_time_saved(self):
+        short = ["--duration", "90", "--warmup", "45"]
+        for command in (["compare", "-n", "2"],
+                        ["sweep", "--param", "arrival_rate", "--values", "60,120", "-n", "2"]):
+            text = self.run_cli(*command, *short)
+            with self.subTest(command=command[0]):
+                self.assertIn("Add --drain 1 to measure time saved", text)
+                self.assertNotIn("walkers save", text)
+                self.assertNotIn("Fastest for walkers", text)
 
     def test_bad_parameter_exits(self):
         with self.assertRaises(SystemExit):

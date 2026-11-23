@@ -16,6 +16,8 @@ TABLE_METRICS = [
     ("wait_mean", "Wait avg s", "{:.1f}"),
     ("wait_p95", "Wait p95 s", "{:.1f}"),
     ("trip_mean", "Trip avg s", "{:.1f}"),
+    ("trip_mean_cares", "Walkers' trip s", "{:.1f}"),
+    ("trip_mean_others", "Others' trip s", "{:.1f}"),
     ("queue_max", "Max queue", "{:.0f}"),
     ("queue_end", "Queue end", "{:.0f}"),
     ("walked_share", "Walked", "{:.0%}"),
@@ -35,6 +37,23 @@ def winner(stats: dict[str, dict[str, float | None]]) -> str:
     if best["ci95"] is None or (best["mean"] or 0) - (second["mean"] or 0) <= margin:
         return "tie"
     return ranked[0]
+
+
+def time_winner(entry: dict[str, Any]) -> str:
+    """Faster strategy for people who want to walk, from one time_saved() entry.
+
+    `by` if the paired saving is above zero by more than its 95% margin, `over`
+    if below by more, else 'tie'. '-' if there's no margin or the runs didn't
+    drain (then the saving leaves out different people for each strategy).
+    """
+    stats = entry["cares"]
+    if not entry["drained"] or stats["mean"] is None or stats["ci95"] is None:
+        return "-"
+    if stats["mean"] > stats["ci95"]:
+        return entry["by"]
+    if stats["mean"] < -stats["ci95"]:
+        return entry["over"]
+    return "tie"
 
 
 def winners(data: dict[str, Any], metric: str = "throughput_per_min") -> list[str]:

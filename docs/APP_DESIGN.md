@@ -239,7 +239,8 @@ reason, a cancel stops the experiment at the next slice boundary (within about
 `exp_result` returns the CSV and JSON text made by `report.py`. Those are the
 same functions behind `--output csv|json`. The "Download" buttons save exactly
 that text, so a GUI download is identical to the CLI output for the same
-settings.
+settings. That includes the `time_saved` section of the JSON, even before the
+GUI shows it on screen.
 
 ### From an experiment to the live view
 
