@@ -23,9 +23,12 @@ from escalator_sim.report import time_winner, winner
 
 STRATEGIES = ["stand-both", "walk-left"]
 
-# Holborn 5/6 (23.4 m rise, one of a pair), as calibrated in tests/test_calibration.py.
-# 45% walk: Davis & Dutta's formulas give 47.4 walking and 58.4 standing per minute there.
-HOLBORN = dict(
+# Main settings, tables 1-6: Holborn's escalators 5/6 (23.4 m rise, one of a pair; used in the
+# 2015 trial, Harrison et al. 2016), with values from Davis & Dutta (2002) as calibrated in
+# tests/test_calibration.py: belt speed and step depth measured; walk_gap fitted to their
+# walking-side formula; 45% walk, from their formulas (47.4 walking, 58.4 standing per minute);
+# no lane switching, since their formulas count lanes as observed.
+DAVIS_DUTTA_2002_HOLBORN = dict(
     rise=23.4, belt_speed=0.72, step_depth=0.4, walk_gap=0.9, walk_fraction=0.45,
     defect_prob=0.0, blocker_rate=0.0, warmup=180.0, duration=900.0, drain=1,
 )
@@ -37,14 +40,15 @@ BLOCKERS = [0.0, 0.01, 0.02, 0.05, 0.1]
 WALK_SHARES = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
 GRID_ARRIVALS = [60, 90, 110, 130]
 GRID_BLOCKERS = [0.0, 0.02, 0.05]
-# Davis & Dutta's walking-side formula at 23.4 m, one of a pair: the most people seen walking
-# with a queue waiting. Above about 105 arrivals/min, a fixed 45% would walk more than that.
-MEASURED_WALKERS_PER_MIN = 83.49 - 1.20 * 23.4 - 8.05
-CAPPED_ARRIVALS = [110, 120, 130, 140, 150]
-# Filippidis et al. (2025), Safety Science 196, 107064: their escalator, walker share and
-# spacing (two empty steps for walkers), to see how much of their larger gain settings explain.
-FILIPPIDIS = dict(rise=23.75, belt_speed=0.75, walk_gap=1.2, walk_fraction=0.40)
-FILIPPIDIS_ARRIVALS = [40, 70, 90, 100, 120]
+# Table 6. Davis & Dutta (2002) walking-side formula at 23.4 m, one of a pair: the most people
+# seen walking with a queue waiting. Above about 105 arrivals/min, a fixed 45% would walk more.
+DAVIS_DUTTA_2002_WALKERS_PER_MIN = 83.49 - 1.20 * 23.4 - 8.05
+DAVIS_DUTTA_2002_CAPPED_ARRIVALS = [110, 120, 130, 140, 150]
+# Table 7. Filippidis et al. (2025), Safety Science 196, 107064: their escalator, walker share
+# and spacing (two empty steps for walkers), to see how much of their larger gain settings
+# explain. Everything else stays as in DAVIS_DUTTA_2002_HOLBORN.
+FILIPPIDIS_2025 = dict(rise=23.75, belt_speed=0.75, walk_gap=1.2, walk_fraction=0.40)
+FILIPPIDIS_2025_ARRIVALS = [40, 70, 90, 100, 120]
 
 # (heading, swept parameter, its values, fixed settings)
 SWEEPS: list[tuple[str, str, list[float], dict[str, float]]] = [
@@ -123,7 +127,7 @@ def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
     parser.add_argument("--jobs", "-j", type=int, default=0, help="0 = all CPUs [0]")
     parser.add_argument("--quick", action="store_true", help="short runs, 2 seeds")
     args = parser.parse_args(argv)
-    settings = {**HOLBORN, **(QUICK if args.quick else {})}
+    settings = {**DAVIS_DUTTA_2002_HOLBORN, **(QUICK if args.quick else {})}
     reps = 2 if args.quick else args.replications
     base = SimConfig(**settings)
 
@@ -153,16 +157,16 @@ def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
         out.write(f"\n### {len(SWEEPS) + 1}. Arrival rate and blockers together\n\n"
                   f"{table(['arrival_rate', 'blocker_rate', *HEADERS], rows)}\n")
         rows = []
-        for rate in CAPPED_ARRIVALS:
-            share = MEASURED_WALKERS_PER_MIN / rate
+        for rate in DAVIS_DUTTA_2002_CAPPED_ARRIVALS:
+            share = DAVIS_DUTTA_2002_WALKERS_PER_MIN / rate
             (p,) = run("arrival_rate", [rate], {"walk_fraction": share})
             rows.append([f"{rate:g}", f"{share:.0%}", *row(p)])
         out.write(f"\n### {len(SWEEPS) + 2}. Arrival rate, walkers held at the measured "
-                  f"{MEASURED_WALKERS_PER_MIN:.1f} per minute, no blockers\n\n"
+                  f"{DAVIS_DUTTA_2002_WALKERS_PER_MIN:.1f} per minute, no blockers\n\n"
                   f"{table(['arrival_rate', 'walk_fraction', *HEADERS], rows)}\n")
-        points = run("arrival_rate", FILIPPIDIS_ARRIVALS, FILIPPIDIS)
+        points = run("arrival_rate", FILIPPIDIS_2025_ARRIVALS, FILIPPIDIS_2025)
         rows = [[f"{p['value']:g}", *row(p)] for p in points]
-        shown = ", ".join(f"{k}={v:g}" for k, v in FILIPPIDIS.items())
+        shown = ", ".join(f"{k}={v:g}" for k, v in FILIPPIDIS_2025.items())
         out.write(f"\n### {len(SWEEPS) + 3}. With Filippidis et al.'s settings ({shown}), "
                   f"no blockers\n\n{table(['arrival_rate', *HEADERS], rows)}\n")
     finally:
