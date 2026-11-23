@@ -7,7 +7,7 @@ whether they will walk once on the escalator. New strategies subclass
 from __future__ import annotations
 
 import random
-from typing import Sequence
+from collections.abc import Sequence
 
 from .config import SimConfig
 from .person import Person
@@ -78,7 +78,9 @@ class StandBoth(Strategy):
     name = "stand-both"
     description = "Everyone stands in every lane and joins the shortest queue."
 
-    def choose(self, person, queue_lengths, rng):
+    def choose(
+        self, person: Person, queue_lengths: Sequence[int], rng: random.Random
+    ) -> tuple[int, bool]:
         return _shortest(range(len(queue_lengths)), queue_lengths, rng), False
 
 
@@ -90,11 +92,13 @@ class WalkLeft(Strategy):
         "lane when the right queue is long (defect_*); some stand in it (blocker_rate)."
     )
 
-    def validate(self):
+    def validate(self) -> None:
         if self.config.lanes < 2:
             raise ValueError("walk-left needs at least 2 lanes")
 
-    def choose(self, person, queue_lengths, rng):
+    def choose(
+        self, person: Person, queue_lengths: Sequence[int], rng: random.Random
+    ) -> tuple[int, bool]:
         cfg = self.config
         if person.wants_to_walk:
             return WALK_LANE, True
@@ -106,7 +110,7 @@ class WalkLeft(Strategy):
             return WALK_LANE, True
         return lane, False
 
-    def kind(self, person):
+    def kind(self, person: Person) -> str:
         if person.walking and not person.wants_to_walk:
             return "defector"   # a stander who switched to walking
         if person.lane == WALK_LANE and not person.walking:

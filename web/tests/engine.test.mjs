@@ -39,7 +39,8 @@ function assertSameResults(actual, expected) {
   for (const [key, want] of Object.entries(expected)) {
     const got = actual[key];
     if (typeof want === "number" && !Number.isInteger(want)) {
-      assert.ok(Math.abs(got - want) <= 1e-9 * Math.max(1, Math.abs(want)), `${key}: ${got} vs ${want}`);
+      const close = Math.abs(got - want) <= 1e-9 * Math.max(1, Math.abs(want));
+      assert.ok(close, `${key}: ${got} vs ${want}`);
     } else {
       assert.deepEqual(got, want, key);
     }
@@ -52,13 +53,14 @@ import json, sys
 from escalator_sim import Simulation, SimConfig
 r = Simulation(SimConfig(**json.loads(sys.argv[1])), sys.argv[2], int(sys.argv[3])).run()
 print(json.dumps(r))`;
-  const out = execFileSync("python3", ["-c", code, JSON.stringify(overrides), strategy, String(seed)],
-    { cwd: repoDir, encoding: "utf8" });
+  const args = ["-c", code, JSON.stringify(overrides), strategy, String(seed)];
+  const out = execFileSync("python3", args, { cwd: repoDir, encoding: "utf8" });
   return JSON.parse(out);
 }
 
 test("installed pyodide matches the pinned CDN version", { skip }, async () => {
-  const pkg = JSON.parse(await readFile(path.join(repoDir, "node_modules/pyodide/package.json"), "utf8"));
+  const pkgFile = path.join(repoDir, "node_modules/pyodide/package.json");
+  const pkg = JSON.parse(await readFile(pkgFile, "utf8"));
   assert.equal(pkg.version, PYODIDE_VERSION);
 });
 
@@ -104,14 +106,16 @@ test("runExperiment drives an experiment with progress and cancel", { skip }, as
   const spec = { kind: "sweep", config: SHORT, strategies: ["stand-both", "walk-left"],
     replications: 1, seed: 1, param: "walk_fraction", values: [0, 0.5] };
   const seen = [];
-  const out = await runExperiment(engine, spec, { onProgress: (p) => seen.push(p.done), sliceSeconds: 0 });
+  const out = await runExperiment(engine, spec,
+    { onProgress: (p) => seen.push(p.done), sliceSeconds: 0 });
   assert.equal(out.cancelled, false);
   assert.deepEqual(seen, [0, 1, 2, 3, 4]);
   assert.equal(out.result.data.points.length, 2);
   assert.equal(out.result.winners.length, 2);
 
   let slices = 0;
-  const cancelled = await runExperiment(engine, spec, { sliceSeconds: 0, isCancelled: () => ++slices > 2 });
+  const cancelled = await runExperiment(engine, spec,
+    { sliceSeconds: 0, isCancelled: () => ++slices > 2 });
   assert.deepEqual(cancelled, { cancelled: true });
   assert.throws(() => engine.expResult(), /experiment not finished/);
 });
@@ -124,6 +128,7 @@ test("Python errors become readable messages", { skip }, () => {
 });
 
 test("pythonErrorMessage keeps the last traceback line", () => {
-  const err = new Error("Traceback (most recent call last):\n  File ...\nValueError: rise must be > 0\n");
+  const err = new Error(
+    "Traceback (most recent call last):\n  File ...\nValueError: rise must be > 0\n");
   assert.equal(pythonErrorMessage(err), "rise must be > 0");
 });

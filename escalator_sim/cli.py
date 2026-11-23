@@ -6,11 +6,12 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Any, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any, TextIO
 
 from .config import GROUPS, PARAM_INFO, SimConfig
 from .engine import Simulation
-from .experiments import compare, sweep
+from .experiments import Job, MapFn, compare, sweep
 from .report import TABLE_METRICS, experiment_csv, flat_run, to_csv, to_json, winner
 from .strategies import available_strategies
 
@@ -49,11 +50,11 @@ def build_parser() -> argparse.ArgumentParser:
     cfg = _config_parent()
     all_strategies = ",".join(available_strategies())
 
-    def output_args(p):
+    def output_args(p: argparse.ArgumentParser) -> None:
         p.add_argument("--output", choices=["table", "json", "csv"], default="table",
                        help="output format, printed to stdout [table]")
 
-    def batch_args(p, reps):
+    def batch_args(p: argparse.ArgumentParser, reps: int) -> None:
         p.add_argument("--strategies", type=_strategy_list, default=list(available_strategies()),
                        help=f"comma-separated [{all_strategies}]")
         p.add_argument("--replications", "-n", type=int, default=reps,
@@ -71,7 +72,8 @@ def build_parser() -> argparse.ArgumentParser:
     batch_args(p, 10)
     output_args(p)
 
-    p = sub.add_parser("sweep", parents=[cfg], help="compare strategies across values of one parameter")
+    p = sub.add_parser("sweep", parents=[cfg],
+                       help="compare strategies across values of one parameter")
     p.add_argument("--param", required=True, choices=SimConfig.field_names())
     p.add_argument("--values", required=True, help="comma-separated values, e.g. 0,0.1,0.2")
     batch_args(p, 5)
@@ -82,13 +84,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def config_from_args(args: argparse.Namespace) -> SimConfig:
-    overrides = {k: getattr(args, k) for k in SimConfig.field_names() if getattr(args, k, None) is not None}
+    overrides = {k: getattr(args, k) for k in SimConfig.field_names()
+                 if getattr(args, k, None) is not None}
     return SimConfig.from_dict({**SimConfig().to_dict(), **overrides})
 
 
 # --------------------------------------------------------------- formatting
 
-def _fmt(value: Optional[float], fmt: str, ci: Optional[float] = None) -> str:
+def _fmt(value: float | None, fmt: str, ci: float | None = None) -> str:
     if value is None:
         return "-"
     text = fmt.format(value)
@@ -107,12 +110,14 @@ def render_table(headers: Sequence[str], rows: Sequence[Sequence[str]]) -> str:
 
 def _describe(config: SimConfig) -> str:
     warnings = "".join(f"WARNING: {msg}. Raise --{field}.\n" for field, msg in config.warnings())
-    return warnings + (f"Escalator {config.length:.1f} m long ({config.rise:g} m rise), belt {config.belt_speed:g} m/s; "
+    return warnings + (
+            f"Escalator {config.length:.1f} m long ({config.rise:g} m rise), "
+            f"belt {config.belt_speed:g} m/s; "
             f"{config.arrival_rate:g} arrivals/min, {config.walk_fraction:.0%} want to walk; "
             f"measured {config.duration - config.warmup:g} s after {config.warmup:g} s warm-up.")
 
 
-def _relative(a: Optional[float], b: Optional[float]) -> str:
+def _relative(a: float | None, b: float | None) -> str:
     if a is None or not b:
         return "-"
     return f"{(a - b) / b:+.1%}"
@@ -120,18 +125,18 @@ def _relative(a: Optional[float], b: Optional[float]) -> str:
 
 # ----------------------------------------------------------------- commands
 
-def _map_fn(jobs: int):
+def _map_fn(jobs: int) -> MapFn | None:
     if jobs == 1:
         return None
     from concurrent.futures import ProcessPoolExecutor
 
-    def pooled(fn, items):
+    def pooled(fn: Callable[[Job], dict], items: list[Job]) -> list[dict]:
         with ProcessPoolExecutor(max_workers=jobs or None) as pool:
             return list(pool.map(fn, items, chunksize=4))
     return pooled
 
 
-def cmd_run(args, out) -> None:
+def cmd_run(args: argparse.Namespace, out: TextIO) -> None:
     config = config_from_args(args)
     result = Simulation(config, args.strategy, args.seed).run()
     if args.output == "json":
@@ -158,7 +163,7 @@ def _strategy_rows(summaries: dict[str, dict]) -> list[list[str]]:
     return rows
 
 
-def cmd_compare(args, out) -> None:
+def cmd_compare(args: argparse.Namespace, out: TextIO) -> None:
     config = config_from_args(args)
     data = compare(config, args.strategies, args.replications, args.seed, _map_fn(args.jobs))
     summaries = {s: d["summary"] for s, d in data["strategies"].items()}
@@ -169,7 +174,8 @@ def cmd_compare(args, out) -> None:
         out.write(experiment_csv(data))
         return
     out.write(_describe(config) + "\n")
-    out.write(f"{args.replications} replications per strategy (seeds {data['seeds'][0]}-{data['seeds'][-1]}); "
+    seeds = data["seeds"]
+    out.write(f"{args.replications} replications per strategy (seeds {seeds[0]}-{seeds[-1]}); "
               "values are mean ±95% CI.\n\n")
     headers = ["Strategy"] + [h for _, h, _ in TABLE_METRICS]
     out.write(render_table(headers, _strategy_rows(summaries)) + "\n")
@@ -181,9 +187,9 @@ def cmd_compare(args, out) -> None:
             if name == base:
                 continue
             a, b = summaries[name], summaries[base]
-            out.write(f"{name} vs {base}: throughput "
-                      f"{_relative(a['throughput_per_min']['mean'], b['throughput_per_min']['mean'])}, "
-                      f"average wait {_relative(a['wait_mean']['mean'], b['wait_mean']['mean'])}\n")
+            more = _relative(a["throughput_per_min"]["mean"], b["throughput_per_min"]["mean"])
+            wait = _relative(a["wait_mean"]["mean"], b["wait_mean"]["mean"])
+            out.write(f"{name} vs {base}: throughput {more}, average wait {wait}\n")
 
 
 def _parse_values(param: str, text: str) -> list[Any]:
@@ -200,7 +206,7 @@ def _parse_values(param: str, text: str) -> list[Any]:
     return values
 
 
-def cmd_sweep(args, out) -> None:
+def cmd_sweep(args: argparse.Namespace, out: TextIO) -> None:
     config = config_from_args(args)
     values = _parse_values(args.param, args.values)
     data = sweep(config, args.param, values, args.strategies, args.replications,
@@ -224,20 +230,20 @@ def cmd_sweep(args, out) -> None:
     for point in data["points"]:
         sums = {s: point["strategies"][s]["summary"] for s in strategies}
         row = [f"{point['value']:g}"]
-        row += [_fmt(sums[s]["throughput_per_min"]["mean"], "{:.1f}", sums[s]["throughput_per_min"]["ci95"])
-                for s in strategies]
-        row += [_fmt(sums[s]["wait_mean"]["mean"], "{:.1f}", sums[s]["wait_mean"]["ci95"]) for s in strategies]
+        for metric in ("throughput_per_min", "wait_mean"):
+            row += [_fmt(sums[s][metric]["mean"], "{:.1f}", sums[s][metric]["ci95"])
+                    for s in strategies]
         row.append(winner({s: sums[s]["throughput_per_min"] for s in strategies}))
         rows.append(row)
     out.write(render_table(headers, rows) + "\n")
 
 
-def cmd_strategies(args, out) -> None:
+def cmd_strategies(args: argparse.Namespace, out: TextIO) -> None:
     for name, desc in available_strategies().items():
         out.write(f"{name}\n    {desc}\n")
 
 
-def main(argv: Optional[Sequence[str]] = None, out=None) -> int:
+def main(argv: Sequence[str] | None = None, out: TextIO | None = None) -> int:
     out = out or sys.stdout
     parser = build_parser()
     args = parser.parse_args(argv)

@@ -76,13 +76,17 @@ function baseOptions(yTitle) {
   };
 }
 
-const ciText = (stats, digits) =>
-  stats?.mean == null ? "–" : `${stats.mean.toFixed(digits)}${stats.ci95 == null ? "" : ` ±${stats.ci95.toFixed(digits)}`}`;
+const ciText = (stats, digits) => {
+  if (stats?.mean == null) return "–";
+  const ci = stats.ci95 == null ? "" : ` ±${stats.ci95.toFixed(digits)}`;
+  return `${stats.mean.toFixed(digits)}${ci}`;
+};
 
 /**
  * Bar chart of one metric per strategy, with 95% error bars.
  * @param {HTMLCanvasElement} canvas
- * @param {{labels: string[], colors: string[], stats: object[], title: string, digits?: number}} spec
+ * @param {{labels: string[], colors: string[], stats: object[], title: string,
+ *   digits?: number}} spec
  */
 export function barChart(Chart, canvas, { labels, colors, stats, title, digits = 1 }) {
   const options = baseOptions(title);

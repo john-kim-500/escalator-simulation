@@ -12,7 +12,9 @@ export const PYODIDE_CDN = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}
  * @param {object} [opts.pyodideOptions]  passed to loadPyodide (e.g. indexURL)
  * @param {(message: string) => void} [opts.onStatus]
  */
-export async function loadEngine({ loadPyodide, readFile, pyodideOptions = {}, onStatus = () => {} }) {
+export async function loadEngine({
+  loadPyodide, readFile, pyodideOptions = {}, onStatus = () => {},
+}) {
   onStatus("Loading the Python runtime…");
   const pyodide = await loadPyodide(pyodideOptions);
 
@@ -38,7 +40,7 @@ _session = Session()
     try {
       out = session[method](...args);
     } catch (err) {
-      throw new Error(pythonErrorMessage(err));
+      throw new Error(pythonErrorMessage(err), { cause: err });
     }
     return out === undefined || out === null ? null : JSON.parse(out);
   }

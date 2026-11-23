@@ -8,7 +8,7 @@ from __future__ import annotations
 import csv
 import io
 import json
-from typing import Any, Optional
+from typing import Any
 
 # Metrics shown in result tables: (key, header, format)
 TABLE_METRICS = [
@@ -22,7 +22,7 @@ TABLE_METRICS = [
 ]
 
 
-def winner(stats: dict[str, dict[str, Optional[float]]]) -> str:
+def winner(stats: dict[str, dict[str, float | None]]) -> str:
     """Strategy with the highest mean, or 'tie' if its lead is within the 95% CIs.
 
     `stats` maps strategy name to a mean_ci() dict ({mean, ci95, n}).

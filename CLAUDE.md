@@ -13,7 +13,7 @@ Agent-based simulation testing whether an escalator moves more people when every
 
 ## Coding standards
 
-These describe how the existing code is written. Follow them in new code. Nothing checks them automatically.
+These describe how the existing code is written. Follow them in new code. `npm run lint` checks line length, type hints, quotes and `var` (Ruff for Python, ESLint for JavaScript); GitHub runs it and both test suites on every pull request (`.github/workflows/checks.yml`).
 
 **All code**
 - Lines are 100 characters or less. URLs and strings that can't be split are the only exceptions.
@@ -44,12 +44,14 @@ python3 -m unittest tests.test_engine.Capacity                 # one test class
 python3 -m unittest tests.test_engine.Capacity.test_board_headway_limits_capacity  # one test
 npm install && npm test                                        # JS tests: runs the real engine in Pyodide under Node (Node 22+)
 node --test web/tests/helpers.test.mjs                         # one JS test file
+pip install -r requirements-dev.txt && npm run lint            # style checks (Ruff + ESLint)
+npm run lint:fix                                               # fix what the checkers can, list the rest
 
 python3 -m escalator_sim compare -n 20                         # CLI; see --help on run/compare/sweep
 python3 -m http.server 8000                                    # from repo root, then open http://localhost:8000/web/
 ```
 
-There is no build step, linter or formatter configured. The web GUI is plain ES modules served as static files.
+There is no build step and no automatic formatter. `npm run lint:fix` fixes quotes, import order, `let`/`const` and indentation; fix the rest (mostly long lines and type hints) by hand. The web GUI is plain ES modules served as static files. Style settings live in `pyproject.toml` (Ruff only; it is not a package build file) and `eslint.config.js`.
 
 ## Architecture
 

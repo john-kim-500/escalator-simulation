@@ -6,9 +6,14 @@ import unittest
 from pathlib import Path
 
 from escalator_sim import SimConfig, Simulation, cli, compare, report, sweep
-from escalator_sim.config import PARAM_INFO, PRESETS, GROUPS
-from escalator_sim.experiments import (collect_compare, collect_sweep, plan_compare,
-                                       plan_sweep, run_one)
+from escalator_sim.config import GROUPS, PARAM_INFO, PRESETS
+from escalator_sim.experiments import (
+    collect_compare,
+    collect_sweep,
+    plan_compare,
+    plan_sweep,
+    run_one,
+)
 from escalator_sim.session import Session, check_config, dumps
 from escalator_sim.strategies import KINDS
 
@@ -120,7 +125,8 @@ class ConfigChecks(unittest.TestCase):
         self.assertAlmostEqual(r["derived"]["stand_lane_capacity"], 56.25)
 
     def test_dumps_handles_infinity(self):
-        self.assertEqual(json.loads(dumps({"a": math.inf, "b": [math.nan]})), {"a": None, "b": [None]})
+        out = json.loads(dumps({"a": math.inf, "b": [math.nan]}))
+        self.assertEqual(out, {"a": None, "b": [None]})
         r = json.loads(dumps(check_config({"board_headway": 0})))
         self.assertTrue(r["ok"])
 

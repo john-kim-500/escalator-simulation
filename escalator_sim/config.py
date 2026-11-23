@@ -8,7 +8,7 @@ Distances are meters measured along the incline, times are seconds, speeds are m
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass, fields, replace
+from dataclasses import asdict, dataclass, fields
 from typing import Any
 
 
@@ -66,7 +66,8 @@ class SimConfig:
             out.append(("warmup", f"warm-up ({self.warmup:g} s) is shorter than one standing ride "
                                   f"({ride:.0f} s), so throughput is underestimated"))
         if self.duration - self.warmup < 2 * ride:
-            out.append(("duration", f"only {self.duration - self.warmup:g} s are measured, less than "
+            measured = self.duration - self.warmup
+            out.append(("duration", f"only {measured:g} s are measured, less than "
                                     f"two rides ({2 * ride:.0f} s); results will be noisy"))
         return out
 
@@ -88,13 +89,13 @@ class SimConfig:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SimConfig":
+    def from_dict(cls, data: dict[str, Any]) -> SimConfig:
         values, errors = convert_values(data)
         if errors:
             raise ValueError("; ".join(msg for _, msg in errors))
         return cls(**values)
 
-    def with_changes(self, **changes: Any) -> "SimConfig":
+    def with_changes(self, **changes: Any) -> SimConfig:
         return self.from_dict({**self.to_dict(), **changes})
 
     @classmethod
@@ -176,7 +177,10 @@ GROUPS = {
 }
 
 
-def _p(group, label, unit, lo, hi, step, help, only_for=None):
+def _p(
+    group: str, label: str, unit: str, lo: float, hi: float, step: float, help: str,
+    only_for: list[str] | None = None,
+) -> dict[str, Any]:
     return {"group": group, "label": label, "unit": unit, "min": lo, "max": hi,
             "step": step, "help": help, "only_for": only_for}
 
@@ -208,7 +212,8 @@ PARAM_INFO: dict[str, dict[str, Any]] = {
     "board_headway": _p("spacing", "Boarding interval", "s", 0, 3, 0.1,
                         "Minimum time between two people stepping onto the same lane."),
     "defect_threshold": _p("behaviour", "Switch threshold", "people", 0, 50, 1,
-                           "How much longer the right queue must be before standers are tempted to walk.",
+                           "How much longer the right queue must be before standers are "
+                           "tempted to walk.",
                            only_for=["walk-left"]),
     "defect_prob": _p("behaviour", "Switch chance", "share", 0, 1, 0.05,
                       "Chance a tempted stander walks in the left lane instead.",

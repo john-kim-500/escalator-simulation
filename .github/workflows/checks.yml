@@ -1,0 +1,30 @@
+# Runs the style checks and both test suites on every pull request and on main.
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"  # the oldest version the engine supports
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: pip install -r requirements-dev.txt
+      - run: npm ci
+      - name: Python style
+        run: ruff check .
+      - name: JavaScript style
+        run: npx eslint .
+      - name: Python tests
+        run: python -m unittest discover -s tests
+      - name: Browser engine tests
+        run: npm test

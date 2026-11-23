@@ -30,7 +30,8 @@ async function main() {
   const client = new EngineClient({
     onStatus: (message) => ($("loading-message").textContent = message),
     onFatal: (error) => showFatal("The simulator could not start",
-      `${error}. It downloads the Python runtime from cdn.jsdelivr.net, so it needs internet access.`),
+      `${error}. It downloads the Python runtime from cdn.jsdelivr.net, `
+        + "so it needs internet access."),
   });
 
   let info;
@@ -62,7 +63,10 @@ async function main() {
     try {
       result = await client.request("check", { values, strategies: live.strategies });
     } catch (err) {
-      result = { ok: false, errors: [{ field: "", message: err.message }], warnings: [], derived: null, config: null };
+      result = {
+        ok: false, errors: [{ field: "", message: err.message }], warnings: [], derived: null,
+        config: null,
+      };
     }
     if (seq !== checkSeq) return; // a newer edit superseded this one
     lastCheck = result;
@@ -77,7 +81,9 @@ async function main() {
   // Live / Experiments tabs. The live animation pauses while hidden.
   const tabs = $("view-tabs");
   function showView(view) {
-    for (const b of tabs.querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.view === view));
+    for (const b of tabs.querySelectorAll("button")) {
+      b.setAttribute("aria-pressed", String(b.dataset.view === view));
+    }
     $("live").hidden = view !== "live";
     $("experiments").hidden = view !== "experiments";
     live.setActive(view === "live");

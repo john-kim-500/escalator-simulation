@@ -28,7 +28,8 @@ class SpacingAndMovement(unittest.TestCase):
                     self.assertGreaterEqual(ahead.pos - behind.pos, behind.gap(cfg) - 1e-6)
                 for p in lane:
                     if p.id in last_pos:
-                        self.assertGreaterEqual(p.pos - last_pos[p.id], cfg.belt_speed * cfg.dt - 1e-9)
+                        moved = p.pos - last_pos[p.id]
+                        self.assertGreaterEqual(moved, cfg.belt_speed * cfg.dt - 1e-9)
                     last_pos[p.id] = p.pos
 
         stepped(sim, check)
@@ -110,13 +111,15 @@ class Strategies(unittest.TestCase):
 class Reproducibility(unittest.TestCase):
     def test_same_seed_same_results(self):
         cfg = SimConfig(**SHORT)
-        self.assertEqual(Simulation(cfg, "walk-left", 7).run(), Simulation(cfg, "walk-left", 7).run())
+        first, second = Simulation(cfg, "walk-left", 7).run(), Simulation(cfg, "walk-left", 7).run()
+        self.assertEqual(first, second)
 
     def test_same_crowd_across_strategies(self):
         cfg = SimConfig(**SHORT)
         a, b = Simulation(cfg, "walk-left", 7), Simulation(cfg, "stand-both", 7)
         a.run(), b.run()
-        key = lambda s: [(p.arrival_time, p.wants_to_walk, p.walk_speed) for p in s.people]
+        def key(s):
+            return [(p.arrival_time, p.wants_to_walk, p.walk_speed) for p in s.people]
         self.assertEqual(key(a), key(b))
 
     def test_people_conserved(self):
@@ -137,7 +140,8 @@ class SnapshotAndResults(unittest.TestCase):
         json.dumps(sim.run())
 
     def test_warmup_too_short_flag(self):
-        self.assertTrue(Simulation(SimConfig(duration=100, warmup=10), "stand-both").run()["warmup_too_short"])
+        short = SimConfig(duration=100, warmup=10)
+        self.assertTrue(Simulation(short, "stand-both").run()["warmup_too_short"])
         self.assertFalse(Simulation(SimConfig(**SHORT), "stand-both").run()["warmup_too_short"])
 
     def test_overloaded_waits_include_people_still_queueing(self):
