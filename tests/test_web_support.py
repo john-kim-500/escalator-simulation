@@ -141,6 +141,15 @@ class SessionApi(unittest.TestCase):
         self.assertTrue(state["done"])
         self.assertAlmostEqual(state["time"], SHORT["duration"])
 
+    def test_live_advance_never_overshoots(self):
+        s = Session()
+        s.live_start(json.dumps(SHORT), json.dumps(["walk-left"]), 1)
+        self.assertEqual(json.loads(s.live_advance(0.016))["time"], 0.0)  # under one step
+        self.assertAlmostEqual(json.loads(s.live_advance(0.25))["time"], 0.2)
+        # A duration that is not a whole number of steps still finishes.
+        s.live_start(json.dumps({**SHORT, "duration": 100.05}), json.dumps(["walk-left"]), 1)
+        self.assertTrue(json.loads(s.live_advance(1000))["done"])
+
     def test_live_matches_cli_run(self):
         s = Session()
         s.live_start(json.dumps(SHORT), json.dumps(["walk-left"]), 9)

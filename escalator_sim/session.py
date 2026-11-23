@@ -93,11 +93,21 @@ class Session:
         return self._live_state(max_queue)
 
     def live_advance(self, seconds: float, max_queue: int = 60) -> str:
-        """Advance every live simulation by the same simulated time."""
+        """Advance every live simulation by the same simulated time.
+
+        Only whole steps are taken (never overshooting), so a caller that asks
+        for less than one step gets no change and can carry the remainder over
+        to its next call. The final step to `duration` is always taken.
+        """
         if self.sims:
-            target = min(self.sims[0].time + float(seconds), self.sims[0].config.duration)
+            config = self.sims[0].config
+            target = min(self.sims[0].time + float(seconds), config.duration)
             for sim in self.sims:
-                sim.run(until=target)
+                if target >= config.duration - 1e-9:
+                    sim.run(until=config.duration)
+                else:
+                    while sim.time + config.dt <= target + 1e-9:
+                        sim.step()
         return self._live_state(max_queue)
 
     def _live_state(self, max_queue: int) -> str:

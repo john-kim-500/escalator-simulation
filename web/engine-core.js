@@ -9,11 +9,12 @@ export const PYODIDE_CDN = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}
  * @param {object} opts
  * @param {Function} opts.loadPyodide  loadPyodide from the pyodide package or CDN module
  * @param {(path: string) => Promise<string>} opts.readFile  reads a path relative to web/
+ * @param {object} [opts.pyodideOptions]  passed to loadPyodide (e.g. indexURL)
  * @param {(message: string) => void} [opts.onStatus]
  */
-export async function loadEngine({ loadPyodide, readFile, onStatus = () => {} }) {
+export async function loadEngine({ loadPyodide, readFile, pyodideOptions = {}, onStatus = () => {} }) {
   onStatus("Loading the Python runtime…");
-  const pyodide = await loadPyodide();
+  const pyodide = await loadPyodide(pyodideOptions);
 
   onStatus("Loading the simulator…");
   const manifest = JSON.parse(await readFile("manifest.json"));

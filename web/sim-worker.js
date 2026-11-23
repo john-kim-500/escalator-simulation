@@ -12,6 +12,7 @@ const ready = (async () => {
   const { loadPyodide } = await import(`${PYODIDE_CDN}pyodide.mjs`);
   const engine = await loadEngine({
     loadPyodide,
+    pyodideOptions: { indexURL: PYODIDE_CDN },
     readFile: async (path) => {
       const response = await fetch(new URL(path, base));
       if (!response.ok) throw new Error(`could not load ${path} (HTTP ${response.status})`);

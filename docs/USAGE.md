@@ -10,6 +10,7 @@ For the design and the reasons behind it, see [PLAN.md](../PLAN.md).
 - [Reading the results](#reading-the-results)
 - [Saving results: JSON and CSV](#saving-results-json-and-csv)
 - [Recipes for testing the theory](#recipes-for-testing-the-theory)
+- [Web interface](#web-interface)
 - [Using the engine from Python](#using-the-engine-from-python)
 - [Troubleshooting](#troubleshooting)
 - [Running the tests](#running-the-tests)
@@ -288,6 +289,43 @@ python3 -m escalator_sim sweep --param arrival_rate --values 30,60,90,120,150 -n
 Recipe 3 lengthens the warm-up because a 24 m rise makes a 64 s ride (see the
 next section).
 
+## Web interface
+
+The browser interface lets you change settings and watch the strategies run.
+It uses the same engine and gives the same numbers as the command line for
+the same settings and seed.
+
+**Start it** from the project folder:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open **http://localhost:8000/web/**.
+
+- You need a web server; opening `web/index.html` directly as a file doesn't
+  work, because browsers block the simulation worker on `file://` pages.
+- On the first visit the page downloads the Python runtime (about 12 MB) from
+  cdn.jsdelivr.net. After that it loads from the browser cache.
+- **In Docker:** the container must publish the port, e.g.
+  `docker run -p 8000:8000 ...`. Otherwise the browser on your computer can't
+  reach the server. `http.server` already listens on all network interfaces.
+  If port 8000 is taken, use another number in both places.
+
+**Using it:**
+
+| Area | What it does |
+|---|---|
+| Settings (left; below the animation on phones) | Every parameter, with its unit, a slider and help text. Changes are checked and restart the run after a short pause. Errors appear next to the field. The grey box shows calculated values: escalator length, ride time and lane capacities |
+| Controls | Play/Pause (**Space**), Step +1 s, Restart, and speed (1×–50×). Tick or untick strategies. **Seed** picks the crowd, and **New crowd** picks a random seed |
+| Escalators | One per strategy, seen from above, with the top of the escalator at the top. Every strategy gets the same crowd. Shapes show who is who: ● standing, ▲ walking, ◆ a stander who switched to walking, ■ standing in the walk lane. The queue is below each lane; a number like `97 (+57)` means 97 are queueing and 57 of them didn't fit in the drawing |
+| Live numbers | People at the top, throughput over the last 60 s, queue per lane, average wait so far, and share walking |
+| People at the top | A chart of how many people have reached the top over time, per strategy. The dashed line is everyone who has arrived. The shaded area is the warm-up |
+| Results | When the run finishes, the same metrics as `run`, measured after the warm-up, side by side |
+
+The live numbers include the warm-up and cover only one crowd. Use
+`compare` for conclusions over many crowds.
+
 ## Using the engine from Python
 
 The command line is a thin layer on top of the engine. Scripts, notebooks and the
@@ -359,7 +397,11 @@ default run takes about 0.1 s.
 
 ```bash
 python3 -m unittest discover -s tests
+npm install && npm test
 ```
 
-The tests check spacing, boarding, the lane-capacity calculation, strategy
-behaviour, reproducibility, and the command line.
+The Python tests check spacing, boarding, the lane-capacity calculation,
+strategy behaviour, reproducibility, the command line and the pieces the GUI
+uses. `npm test` runs the engine inside Pyodide under Node, checks that its
+results match native Python, and tests the web helper functions. It needs
+Node.js 22 or newer; `npm install` downloads Pyodide for the tests only.
