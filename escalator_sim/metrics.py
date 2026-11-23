@@ -1,11 +1,13 @@
 """Summary statistics for a run and across replications.
 
 Everything is measured after the warm-up period:
-  * throughput counts people reaching the top during [warmup, end];
-  * waits and trip times cover people who *arrived* after warm-up. People
-    still queueing at the end count with the time waited so far, so waits are
-    a lower bound when the escalator is overloaded (instead of hiding the
-    longest waits).
+  * throughput and line figures cover [warmup, duration], even after a drain;
+  * waits and trip times cover people who *arrived* after warm-up, split by
+    group for trips: "cares" (wants_to_walk) and "others".
+Without a drain, people still queueing at the end count with the time waited
+so far, so waits are a lower bound when the escalator is overloaded, and trip
+times leave out everyone not yet at the top. After a drain (config.drain = 1)
+everyone measured has finished, so both are complete.
 """
 from __future__ import annotations
 
@@ -33,10 +35,11 @@ def mean(values: Sequence[float]) -> float | None:
 
 def summarize(sim: Simulation) -> dict[str, Any]:
     cfg = sim.config
-    start, end = cfg.warmup, sim.time
+    start, end = cfg.warmup, min(sim.time, cfg.duration)
     window = max(end - start, 1e-9)
 
-    exits = [p for p in sim.finished if p.exit_time >= start]
+    by_end = [p for p in sim.finished if p.exit_time <= end]
+    exits = [p for p in by_end if p.exit_time >= start]
     by_lane = [0] * cfg.lanes
     for p in exits:
         by_lane[p.lane] += 1
@@ -46,8 +49,12 @@ def summarize(sim: Simulation) -> dict[str, Any]:
         (p.board_time if p.board_time is not None else end) - p.arrival_time
         for p in cohort
     ]
-    trips = [p.exit_time - p.arrival_time for p in cohort if p.exit_time is not None]
-    queued_at_end = sum(len(q) for q in sim.queues)
+    done = [p for p in cohort if p.exit_time is not None]
+    trips = [p.exit_time - p.arrival_time for p in done]
+    trips_cares = [p.exit_time - p.arrival_time for p in done if p.wants_to_walk]
+    trips_others = [p.exit_time - p.arrival_time for p in done if not p.wants_to_walk]
+    cares_count = sum(p.wants_to_walk for p in cohort)
+    queued_at_end = sim.queue_end if sim.drained else sum(len(q) for q in sim.queues)
 
     return {
         "strategy": sim.strategy.name,
@@ -60,13 +67,20 @@ def summarize(sim: Simulation) -> dict[str, Any]:
         "wait_max": max(waits) if waits else None,
         "trip_mean": mean(trips),
         "trip_p95": percentile(trips, 95),
+        "trip_mean_cares": mean(trips_cares),
+        "trip_p95_cares": percentile(trips_cares, 95),
+        "trip_mean_others": mean(trips_others),
+        "trip_p95_others": percentile(trips_others, 95),
+        "cares_count": cares_count,
+        "others_count": len(cohort) - cares_count,
         "queue_mean": sim.queue_sum / sim.queue_samples if sim.queue_samples else 0.0,
         "queue_max": sim.queue_max,
         "lane_queue_max": list(sim.lane_queue_max),
         "queue_end": queued_at_end,
         "walked_share": (sum(p.walking for p in exits) / len(exits)) if exits else None,
         "arrived": len(sim.people),
-        "finished": len(sim.finished),
+        "finished": len(by_end),
+        "drained": int(sim.drained),
         # Throughput is underestimated if the measured window starts before
         # anyone could have reached the top.
         "warmup_too_short": start < sim.length / cfg.belt_speed,
@@ -95,7 +109,8 @@ def mean_ci(values: Iterable[float | None]) -> dict[str, float | None]:
 
 SCALAR_METRICS = [
     "throughput_per_min", "wait_mean", "wait_p95", "wait_max", "trip_mean",
-    "trip_p95", "queue_mean", "queue_max", "queue_end", "walked_share",
+    "trip_p95", "trip_mean_cares", "trip_p95_cares", "trip_mean_others", "trip_p95_others",
+    "cares_count", "others_count", "queue_mean", "queue_max", "queue_end", "walked_share",
 ]
 
 

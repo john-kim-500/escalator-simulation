@@ -55,6 +55,7 @@ class Simulation:
         self.on_belt: list[list[Person]] = [[] for _ in range(lanes)]  # top first
         self.finished: list[Person] = []
         self._last_board = [-math.inf] * lanes
+        self.queue_end: int | None = None  # line length at `duration`, saved by drain()
         self._next_arrival = self._draw_interarrival(0.0)
 
         # Queue statistics, sampled at the end of each step after warm-up.
@@ -89,11 +90,38 @@ class Simulation:
         self._sample_queues()
 
     def run(self, until: float | None = None) -> dict[str, Any]:
-        """Step until `until` seconds (default: config.duration); return results()."""
+        """Step until `until` seconds (default: config.duration); return results().
+
+        A full run (no `until`) also calls drain() when config.drain is 1.
+        """
         target = self.config.duration if until is None else until
         while self.time < target - _EPS:
             self.step()
+        if until is None and self.config.drain:
+            self.drain()
         return self.results()
+
+    @property
+    def drained(self) -> bool:
+        return self.queue_end is not None
+
+    def drain(self) -> None:
+        """Stop arrivals and step until everyone who arrived after warm-up is at the top.
+
+        Has no cap: an overloaded run takes as long as clearing its line does.
+        This doesn't change anyone's trip: lines are first come, first served
+        and nobody overtakes, so people arriving later never affect earlier ones.
+        """
+        if self.drained:
+            return
+        self.run(until=self.config.duration)
+        self.queue_end = sum(len(q) for q in self.queues)
+        self._next_arrival = math.inf
+        start = self.config.warmup
+        waiting = [p for p in self.people if p.arrival_time >= start and p.exit_time is None]
+        for p in waiting:  # stops once the last of them is at the top
+            while p.exit_time is None:
+                self.step()
 
     def snapshot(self, max_queue: int | None = None) -> dict[str, Any]:
         """Current state as plain data (for visual front ends).
@@ -220,7 +248,7 @@ class Simulation:
             self._wait_sum += earliest - p.arrival_time
 
     def _sample_queues(self) -> None:
-        if self.time < self.config.warmup - _EPS:
+        if not self.config.warmup - _EPS <= self.time <= self.config.duration + _EPS:
             return
         lengths = [len(q) for q in self.queues]
         total = sum(lengths)

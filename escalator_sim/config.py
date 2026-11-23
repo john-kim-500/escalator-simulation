@@ -42,6 +42,7 @@ class SimConfig:
     duration: float = 600.0
     warmup: float = 120.0
     dt: float = 0.1
+    drain: int = 0          # 1 = finish everyone measured after the run ends
 
     def __post_init__(self) -> None:
         self.validate()
@@ -160,6 +161,7 @@ def check_values(v: dict[str, Any]) -> list[tuple[str, str]]:
         ("duration", v["duration"] > 0, "duration must be > 0"),
         ("warmup", 0 <= v["warmup"] < v["duration"], "warmup must be in [0, duration)"),
         ("dt", 0 < v["dt"] <= 1, "dt must be in (0, 1]"),
+        ("drain", v["drain"] in (0, 1), "drain must be 0 or 1"),
     ]
     return [(name, msg) for name, ok, msg in rules if not ok]
 
@@ -225,6 +227,10 @@ PARAM_INFO: dict[str, dict[str, Any]] = {
                  "Time at the start left out of the results. Should exceed one ride."),
     "dt": _p("run", "Time step", "s", 0.02, 0.5, 0.01,
              "Simulation step. Smaller is slightly more precise and slower."),
+    "drain": _p("run", "Finish the line", "", 0, 1, 1,
+                "1 = after the run ends, stop arrivals and keep going until everyone "
+                "measured reaches the top, so waits and trip times are complete. People "
+                "per minute and line length still stop at the end."),
 }
 
 

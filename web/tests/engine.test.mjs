@@ -79,6 +79,17 @@ test("a live run in Pyodide gives exactly the native Python results", { skip }, 
   assertSameResults(b, nativeRun("walk-left", 3, SHORT));
 });
 
+test("with the drain on, Pyodide live results equal the native run", { skip }, () => {
+  const config = { ...SHORT, arrival_rate: 200, drain: 1 };
+  engine.liveStart(config, ["stand-both", "walk-left"], 2);
+  let state;
+  do state = engine.liveAdvance(50); while (!state.done);
+  const [a, b] = engine.liveResults();
+  assert.equal(a.drained, 1);
+  assertSameResults(a, nativeRun("stand-both", 2, config));
+  assertSameResults(b, nativeRun("walk-left", 2, config));
+});
+
 test("snapshots carry kinds and a limited queue", { skip }, () => {
   const state = engine.liveStart({ ...SHORT, arrival_rate: 300 }, ["walk-left"], 1, 5);
   const later = engine.liveAdvance(100, 5);

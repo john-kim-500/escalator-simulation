@@ -85,7 +85,12 @@ What they suggest:
 
 ## Changes needed in the engine
 
-### 1. Let everyone who arrives finish (drain phase)
+### 1. Let everyone who arrives finish (drain phase) ✅
+
+Done, as an option: `drain` (`--drain 1`), off by default so existing results
+don't change. With it on, **waits** are complete too, not just trip times.
+There is no cap on how long the drain runs. See "Finishing the line" in
+[ENGINE_DESIGN.md](ENGINE_DESIGN.md#finishing-the-line-drain).
 
 **Problem:** `summarize()` takes trip times only from people who reached the
 top. People still queueing or riding when the run ends are left out. When the
@@ -109,15 +114,13 @@ them for the strategy that leaves the longer queue.
 
 **Details:**
 - `run()` gains the drain; `step()` stays the same.
-- There's a safety cap on drain length, with a warning in the results if it's
-  hit (for example, the arrival rate is far above capacity).
-- The live view stops at `duration` as now. Drain results only matter for
-  final results and experiments.
-- The existing `trip_mean`/`trip_p95` switch to the full measured group. That
-  is a deliberate fix, and outputs shift mainly in overloaded runs. Note it in
-  the changelog/README.
+- No cap on drain length: an overloaded run takes as long as clearing its line.
+- The live view stops at `duration` as now. Its final results include the
+  drain.
+- With `drain = 1`, the existing `trip_mean`/`trip_p95` and the waits cover
+  the full measured group. With `drain = 0` they stay as before.
 
-### 2. Trip time by group
+### 2. Trip time by group ✅
 
 `summarize()` adds:
 
@@ -131,6 +134,9 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
 
 ### 3. Time saved, paired by seed
 
+- **This needs `drain = 1`.** Without it, each strategy leaves out a
+  different set of unfinished people. The time-saved output should either
+  turn the drain on or warn when it's off.
 - With the drain, both strategies measure the **same people** for a given
   seed. So the per-person average saving is exactly
   `trip_mean_cares(stand-both) − trip_mean_cares(walk-left)` for that seed. No
@@ -204,8 +210,8 @@ Add them to `SCALAR_METRICS` so `aggregate()` gives a mean and 95% CI for each.
 
 ## Milestones
 
-1. **Drain phase and trip by group** in the engine and `summarize()`, with
-   tests. The existing `trip_mean` fix lands here.
+1. ✅ **Drain phase and trip by group** in the engine and `summarize()`, with
+   tests. The drain is optional (`drain`, off by default).
 2. **Paired time saved** in `experiments.py` and `report.py`. CLI tables and
    CSV/JSON. The "lower is better" winner rule.
 3. **GUI:** experiments table rows, the time-saved chart and winner, and the

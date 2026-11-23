@@ -120,7 +120,14 @@ class Session:
         })
 
     def live_results(self) -> str:
-        """Full results() of each live simulation (e.g. when it finishes)."""
+        """Full results() of each live simulation (e.g. when it finishes).
+
+        With config.drain on, finished simulations drain first, so the results
+        equal Simulation.run().
+        """
+        for s in self.sims:
+            if s.config.drain and s.done:
+                s.drain()
         return dumps([s.results() for s in self.sims])
 
     # ------------------------------------------------------ experiments

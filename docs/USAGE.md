@@ -197,6 +197,7 @@ These set each lane's capacity. A full standing lane carries
 | `--duration` | 600 | Simulated seconds |
 | `--warmup` | 120 | Seconds at the start that are left out of the results. Must be longer than one ride (see [Troubleshooting](#troubleshooting)) |
 | `--dt` | 0.1 | Time step. Smaller values are slightly more precise and slower |
+| `--drain` | 0 | `1` finishes the line: after the run ends, nobody new arrives and the run keeps going until everyone measured reaches the top. Waits and trip times are then complete. See [Finishing the line](#finishing-the-line) |
 
 > **The defaults are guesses.** The spacing, walking speed and lane-switching
 > values strongly affect the result and have not yet been checked against real
@@ -222,13 +223,38 @@ Things to keep in mind:
   and throughput simply equals the arrival rate. The strategies then differ only
   in waiting time. To test the theory, use rush-hour arrival rates, where
   **Queue end** is large.
-- **Under overload, waits are a minimum.** People still in the queue at the end
-  count with the time they've waited so far. A large and growing **Queue end**
-  means the queue never stops growing, and the real waits keep rising with the
-  run length.
+- **Under overload, waits and trips are too low unless you use `--drain 1`.**
+  By default, people still in the queue at the end count with the time
+  they've waited so far, and trip times leave out everyone not yet at the top.
+  A large and growing **Queue end** means the queue never stops growing, and
+  the real waits keep rising with the run length.
 - **Height doesn't change who walks yet.** In reality fewer people walk up tall
   escalators. Here the share is set by `--walk-fraction` alone, so when you
   sweep `rise`, also set the walk fraction you expect for that height.
+
+### Finishing the line
+
+By default a run stops at `--duration`. People still in line or on the
+escalator then have no finished trip:
+- their wait counts as the time waited so far;
+- their trip is left out of **Trip avg s**.
+
+When the escalator is overloaded, that leaves out the longest waits and trips.
+It leaves out more of them for the strategy with the longer line.
+
+`--drain 1` fixes this:
+- After `--duration`, nobody new arrives, and the run keeps going until everyone
+  who arrived after the warm-up has reached the top.
+- Waits and trip times are then complete. They are exactly what these people
+  would have had in a longer run, because the line is first come, first
+  served and nobody overtakes.
+- **Thru/min**, **Max queue**, **Queue end** and **Walked** still cover only
+  the warm-up to `--duration`, so they don't change.
+- A heavily overloaded run takes longer, because clearing the line takes time.
+  At 150 arrivals/min, `compare` takes about 30% longer.
+
+Use it when comparing waits or trip times under rush-hour settings. With spare
+capacity it makes little difference.
 
 ## Saving results: JSON and CSV
 
@@ -242,10 +268,18 @@ python3 -m escalator_sim compare -n 20 --output json > compare.json
 
 **CSV**
 - `run` and `compare`: one row per individual run. The columns are `strategy`,
-  `seed`, `throughput_per_min`, `wait_mean`, `wait_p95`, `wait_max`,
-  `trip_mean`, `trip_p95`, `queue_mean`, `queue_max`, `queue_end`,
-  `walked_share`, `arrived`, `finished`, `warmup_too_short`,
-  `throughput_lane0`, `throughput_lane1`, … .
+  `seed`, `measured_seconds`, `throughput_per_min`, `wait_mean`, `wait_p95`,
+  `wait_max`, `trip_mean`, `trip_p95`, `trip_mean_cares`, `trip_p95_cares`,
+  `trip_mean_others`, `trip_p95_others`, `cares_count`, `others_count`,
+  `queue_mean`, `queue_max`, `queue_end`, `walked_share`, `arrived`,
+  `finished`, `drained`, `warmup_too_short`, `throughput_lane0`,
+  `throughput_lane1`, … .
+- `_cares` columns are for people who want to walk, and `_others` for
+  everyone else (including people who stand in the walk lane and standers
+  who switch to walking). `cares_count` and `others_count` are how many of
+  each were measured. They're the same for every strategy on the same seed.
+- `finished` counts people at the top by `--duration`. `drained` is `1` if the
+  run used `--drain 1`.
 - `sweep`: one row per parameter value and strategy, with `<metric>_mean` and
   `<metric>_ci95` columns. In a sweep over `lanes`, the extra lane columns
   are added at the end and left empty for the rows with fewer lanes.
@@ -364,6 +398,7 @@ while not sim.done:
     sim.step()                     # advances config.dt seconds
     state = sim.snapshot()         # plain dict, see below
 print(sim.results())               # same metrics as the `run` command
+# With drain=1 in the config, call sim.drain() first to finish the line
 
 # Or run to the end in one call
 result = Simulation(config, "stand-both", seed=1).run()

@@ -189,6 +189,86 @@ class RandomDraws(unittest.TestCase):
         self.assertAlmostEqual(sd, 0.2, delta=0.01)
 
 
+class TripGroups(unittest.TestCase):
+    def test_groups_add_up_and_match_across_strategies(self):
+        cfg = SimConfig(walk_fraction=0.4, **SHORT)
+        a, b = Simulation(cfg, "walk-left", 3), Simulation(cfg, "stand-both", 3)
+        ra, rb = a.run(), b.run()
+        measured = [p for p in a.people if p.arrival_time >= cfg.warmup]
+        self.assertEqual(ra["cares_count"] + ra["others_count"], len(measured))
+        self.assertEqual(ra["cares_count"], sum(p.wants_to_walk for p in measured))
+        self.assertEqual((ra["cares_count"], ra["others_count"]),
+                         (rb["cares_count"], rb["others_count"]))
+
+    def test_empty_group_gives_none(self):
+        r = Simulation(SimConfig(walk_fraction=0, drain=1, **SHORT), "walk-left", 1).run()
+        self.assertEqual(r["cares_count"], 0)
+        self.assertIsNone(r["trip_mean_cares"])
+        self.assertIsNone(r["trip_p95_cares"])
+        self.assertIsNotNone(r["trip_mean_others"])
+
+
+OVERLOADED = dict(arrival_rate=200, **SHORT)
+WINDOW_FIELDS = ["throughput_per_min", "throughput_by_lane", "queue_mean", "queue_max",
+                 "lane_queue_max", "queue_end", "walked_share", "finished", "arrived",
+                 "measured_seconds", "cares_count", "others_count"]
+
+
+class Drain(unittest.TestCase):
+    def test_everyone_measured_finishes(self):
+        sim = Simulation(SimConfig(drain=1, **OVERLOADED), "walk-left", 2)
+        r = sim.run()
+        measured = [p for p in sim.people if p.arrival_time >= sim.config.warmup]
+        self.assertTrue(all(p.board_time is not None and p.exit_time is not None
+                            for p in measured))
+        self.assertEqual(r["drained"], 1)
+        self.assertGreater(sim.time, sim.config.duration)
+
+    def test_off_by_default(self):
+        sim = Simulation(SimConfig(**OVERLOADED), "walk-left", 2)
+        r = sim.run()
+        self.assertEqual(r["drained"], 0)
+        self.assertAlmostEqual(sim.time, sim.config.duration)
+
+    def test_window_figures_unchanged(self):
+        for strategy in ("stand-both", "walk-left"):
+            off = Simulation(SimConfig(**OVERLOADED), strategy, 2).run()
+            on = Simulation(SimConfig(drain=1, **OVERLOADED), strategy, 2).run()
+            with self.subTest(strategy=strategy):
+                self.assertGreater(off["queue_end"], 0)
+                for key in WINDOW_FIELDS:
+                    self.assertEqual(on[key], off[key], key)
+
+    def test_earlier_trips_unchanged(self):
+        cfg = SimConfig(arrival_rate=60, **SHORT)
+        off, on = Simulation(cfg, "walk-left", 4), Simulation(cfg.with_changes(drain=1),
+                                                              "walk-left", 4)
+        off.run(), on.run()
+        before = {p.id: (p.board_time, p.exit_time) for p in off.finished}
+        self.assertTrue(before)
+        for p in on.people[:len(off.people)]:
+            if p.id in before:
+                self.assertEqual((p.board_time, p.exit_time), before[p.id])
+
+    def test_fixes_undercount_when_overloaded(self):
+        off = Simulation(SimConfig(**OVERLOADED), "walk-left", 2).run()
+        on = Simulation(SimConfig(drain=1, **OVERLOADED), "walk-left", 2).run()
+        self.assertGreater(on["wait_mean"], off["wait_mean"])
+        self.assertGreater(on["trip_mean"], off["trip_mean"])
+        self.assertGreater(on["trip_mean_cares"], off["trip_mean_cares"])
+
+    def test_drain_twice_is_harmless(self):
+        sim = Simulation(SimConfig(drain=1, **OVERLOADED), "stand-both", 5)
+        first = sim.run()
+        sim.drain()
+        self.assertEqual(sim.results(), first)
+
+    def test_run_until_never_drains(self):
+        sim = Simulation(SimConfig(drain=1, **SHORT), "walk-left", 1)
+        sim.run(until=SHORT["duration"])
+        self.assertFalse(sim.drained)
+
+
 class SnapshotAndResults(unittest.TestCase):
     def test_snapshot_and_results_are_json(self):
         sim = Simulation(SimConfig(**SHORT), "walk-left", 1)
@@ -213,7 +293,8 @@ class SnapshotAndResults(unittest.TestCase):
 
 class Config(unittest.TestCase):
     def test_validation(self):
-        for bad in [dict(walk_fraction=1.5), dict(belt_speed=0), dict(warmup=700), dict(dt=0)]:
+        for bad in [dict(walk_fraction=1.5), dict(belt_speed=0), dict(warmup=700), dict(dt=0),
+                    dict(drain=2)]:
             with self.assertRaises(ValueError):
                 SimConfig(**bad)
 
