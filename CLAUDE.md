@@ -25,7 +25,7 @@ One Python engine (`escalator_sim/`) serves both the CLI and the browser. The br
 
 ### Engine rules (required for Pyodide compatibility)
 - Standard library only (no numpy). Python 3.10+.
-- Plain, JSON-serialisable data in and out (dicts, lists, numbers).
+- Plain, JSON-serializable data in and out (dicts, lists, numbers).
 - No threads, file I/O or `time.sleep` in the engine; the caller drives the loop via `Simulation.step()`. File output and terminal formatting belong in `cli.py`/`report.py`.
 
 ### Python package

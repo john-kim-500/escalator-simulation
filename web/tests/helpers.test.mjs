@@ -101,7 +101,7 @@ test("time left and result formatting", () => {
   assert.equal(downloadName({ seeds: [1], strategies: {} }, "json"), "compare-seed1.json");
 });
 
-test("colours with alpha", () => {
+test("colors with alpha", () => {
   assert.equal(withAlpha("#0b5cad", 0.5), "rgba(11, 92, 173, 0.5)");
   assert.equal(withAlpha(" #fff", 0.2), "rgba(255, 255, 255, 0.2)");
   assert.equal(withAlpha("rgb(1, 2, 3)", 0.1), "rgba(1, 2, 3, 0.1)");

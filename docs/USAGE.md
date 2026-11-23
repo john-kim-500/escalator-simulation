@@ -74,7 +74,7 @@ Add `--help` to any command to see every flag with its default, e.g.
 python3 -m escalator_sim strategies
 ```
 
-| Name | Behaviour |
+| Name | Behavior |
 |---|---|
 | `stand-both` | Everyone stands in every lane, including people who would rather walk. Each person joins the shortest queue |
 | `walk-left` | Standers queue on the right, walkers on the left (lane 0). When the right queue is long, some standers walk in the left lane instead (`defect_threshold`, `defect_prob`). Some standers stand in the walk lane and block it (`blocker_rate`) |
@@ -149,7 +149,7 @@ Every parameter can be set on `run`, `compare` and `sweep` as a flag, written
 with dashes (`--arrival-rate 90`). In `sweep --param` and in Python it is written
 with underscores (`arrival_rate`).
 
-Distances are in metres along the incline, times in seconds and speeds in m/s.
+Distances are in meters along the incline, times in seconds and speeds in m/s.
 
 ### Escalator
 
@@ -182,7 +182,7 @@ Distances are in metres along the incline, times in seconds and speeds in m/s.
 These set each lane's capacity. A full standing lane carries
 `belt_speed ÷ stand_gap × 60` people per minute, which is 56.25 with the defaults.
 
-### Behaviour (`walk-left` only)
+### Behavior (`walk-left` only)
 
 | Flag | Default | Meaning |
 |---|---|---|
@@ -321,7 +321,7 @@ settings on the left. The animation pauses while Experiments is showing.
 
 | Area | What it does |
 |---|---|
-| Settings (left; below the animation on phones) | Every parameter, with its unit, a slider and help text. Changes are checked and restart the run after a short pause. Errors appear next to the field. The grey box shows calculated values: escalator length, ride time and lane capacities |
+| Settings (left; below the animation on phones) | Every parameter, with its unit, a slider and help text. Changes are checked and restart the run after a short pause. Errors appear next to the field. The gray box shows calculated values: escalator length, ride time and lane capacities |
 | Controls | Play/Pause (**Space**), Step +1 s, Restart, and speed (1×–50×). Tick or untick strategies. **Seed** picks the crowd, and **New crowd** picks a random seed |
 | Escalators | One per strategy, seen from above, with the top of the escalator at the top. Every strategy gets the same crowd. Shapes show who is who: ● standing, ▲ walking, ◆ a stander who switched to walking, ■ standing in the walk lane. The queue is below each lane; a number like `97 (+57)` means 97 are queueing and 57 of them didn't fit in the drawing |
 | Live numbers | People at the top, throughput over the last 60 s, queue per lane, average wait so far, and share walking |
@@ -341,7 +341,7 @@ Experiments (or `compare`) for conclusions over many crowds.
 | Run / Cancel | A progress bar shows the runs done and the estimated time left. Cancel stops after the current slice of runs |
 | Results | The command line's table, with mean ±95% margin of error. Compare adds the percentage difference and whether the throughput lead is bigger than the margins of error. Sweep shows the leader at each value, or `tie`, using the command line's rule |
 | Charts | Compare: throughput and average wait per strategy, with error bars. Sweep: throughput and average wait against the swept value, with a shaded band for the margin of error |
-| Download CSV / JSON | Exactly what `--output csv` / `--output json` prints for the same experiment, so files from either can be analysed the same way |
+| Download CSV / JSON | Exactly what `--output csv` / `--output json` prints for the same experiment, so files from either can be analyzed the same way |
 | Watch this scenario | Opens the live view with that result's settings and its first seed. In a sweep, each row has its own **Watch** button |
 
 As a rough guide, one 10-minute run takes about 0.15 s in the browser, so the
@@ -385,7 +385,7 @@ taller = config.with_changes(rise=24, warmup=180, duration=900)
              queue:  [ ...same fields... ] } ] }                                 # waiting, front first
 ```
 
-`pos` is metres from the bottom along the incline, from 0 to `length`.
+`pos` is meters from the bottom along the incline, from 0 to `length`.
 
 ## Troubleshooting
 
@@ -423,7 +423,7 @@ npm install && npm test
 ```
 
 The Python tests check spacing, boarding, the lane-capacity calculation,
-strategy behaviour, reproducibility, the command line and the pieces the GUI
+strategy behavior, reproducibility, the command line and the pieces the GUI
 uses. `npm test` runs the engine inside Pyodide under Node, checks that its
 results match native Python, and tests the web helper functions. It needs
 Node.js 22 or newer; `npm install` downloads Pyodide for the tests only.

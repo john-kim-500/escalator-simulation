@@ -208,7 +208,7 @@ couldn't be extracted with the tools available when this was written.
 
 L. Filippidis, S. M. V. Gwynne, P. J. Lawrence and E. R. Galea (2025).
 "Assessing the impact of rider-only escalator etiquette using agent-based
-modelling." *Safety Science* 196, 107064. doi:10.1016/j.ssci.2025.107064.
+modeling." *Safety Science* 196, 107064. doi:10.1016/j.ssci.2025.107064.
 Open access, CC BY 4.0.
 [University of Greenwich record](https://gala.gre.ac.uk/id/eprint/51899/) ·
 [ScienceDirect](https://www.sciencedirect.com/science/article/pii/S0925753525002899)
@@ -221,8 +221,8 @@ with the Holborn trial.
 
 **What they found:**
 - Everyone standing **clearly helps once the crowd at the bottom of the
-  escalator reaches about 1 person per square metre or more**.
-- At 4 people per square metre, the abstract reports: people carried up by
+  escalator reaches about 1 person per square meter or more**.
+- At 4 people per square meter, the abstract reports: people carried up by
   38.9, time to empty the station down by 66.77, time per person down by 26.5.
   **The abstract gives no units**; these are probably percentages, but that
   needs checking in the full paper.
@@ -233,7 +233,7 @@ with the Holborn trial.
 
 **Use in this project:** this is the study closest to this simulation, and
 the best one to compare results with. One difference: it measures crowding as
-**people per square metre at the bottom**, while this simulation counts
+**people per square meter at the bottom**, while this simulation counts
 **people in line**. Comparing the two would need an assumed size for the
 waiting area.
 
@@ -244,8 +244,8 @@ share of walkers, demand levels) and the units of its results.
 
 Questions the studies raise that this simulation could help answer:
 
-1. **At what escalator height does the answer flip?** Holborn (23.4 m) favours
-   standing; Canary Wharf (shorter) favours walk-left. A sweep over `rise`
+1. **At what escalator height does the answer flip?** Holborn (23.4 m) favors
+   standing; Canary Wharf (shorter) favors walk-left. A sweep over `rise`
    could find the crossover.
 2. **How much time do walkers save, and what does it cost everyone else?**
    Yamamoto et al. suggest the answers point in opposite directions. This is
@@ -253,7 +253,7 @@ Questions the studies raise that this simulation could help answer:
 3. **How much rule-breaking can a stand-on-both-sides rule survive?** Japan's
    experience suggests people drift back to walking.
 4. **Does the simulation agree with Filippidis et al.?** It would need their
-   settings and a way to compare crowding per square metre with people in line.
+   settings and a way to compare crowding per square meter with people in line.
 
 ## Adding a study
 

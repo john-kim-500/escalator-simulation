@@ -213,7 +213,7 @@ Two simplifications:
 - **Someone who steps on partway through a step is carried at the escalator's
   speed until the step ends, even if they're a walker.** Walkers lose a tiny
   amount of walking each time (at most their walking speed × 0.1 s, so a few
-  centimetres). This makes their trip very slightly slower than it should be.
+  centimeters). This makes their trip very slightly slower than it should be.
 
 ## Getting results out
 

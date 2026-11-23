@@ -21,7 +21,7 @@ export function setupCanvas(canvas) {
   return { ctx, width, height };
 }
 
-/** Redraw when the colour scheme changes. */
+/** Redraw when the color scheme changes. */
 export function onThemeChange(callback) {
   window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change", callback);
 }

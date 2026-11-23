@@ -3,7 +3,7 @@
 All parameters live in one flat, frozen dataclass so they map one-to-one onto
 command-line flags, sweep parameters and web controls. `PARAM_INFO` describes
 each parameter (label, unit, range, help) for both the CLI help and the GUI.
-Distances are metres measured along the incline, times are seconds, speeds are m/s.
+Distances are meters measured along the incline, times are seconds, speeds are m/s.
 """
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ class SimConfig:
     walk_gap: float = 0.9
     board_headway: float = 0.5
 
-    # --- Behaviour (walk-left strategy) ---
+    # --- Behavior (walk-left strategy) ---
     defect_threshold: int = 10
     defect_prob: float = 0.3
     blocker_rate: float = 0.0
@@ -171,7 +171,7 @@ GROUPS = {
     "escalator": "Escalator",
     "crowd": "Crowd",
     "spacing": "Spacing and boarding",
-    "behaviour": "Behaviour (walk-left)",
+    "behaviour": "Behavior (walk-left)",
     "run": "Run control",
 }
 

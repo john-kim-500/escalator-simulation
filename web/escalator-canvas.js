@@ -35,7 +35,7 @@ export function computeLayout({ width, height, lanes, length }) {
   };
 }
 
-/** Queue places a lane can show; the rest is summarised as "+N". */
+/** Queue places a lane can show; the rest is summarized as "+N". */
 export function queueCapacity(layout) {
   return layout.queueCols * layout.queueRows;
 }
@@ -137,7 +137,7 @@ export class EscalatorCanvas {
     ctx.fillStyle = colors.text;
     ctx.fillText("▲ top", width / 2, L.pad + 6);
 
-    // People: shape and colour by kind, outlined so neighbours stay distinct.
+    // People: shape and color by kind, outlined so neighbors stay distinct.
     ctx.strokeStyle = colors.outline;
     ctx.lineWidth = 1;
     const drawPerson = (p, x, y) => {

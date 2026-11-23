@@ -43,7 +43,7 @@ CALIBRATED = dict(
 SEEDS = (1, 2)
 TOLERANCE = 0.10
 
-# (rise in metres, one of a pair of up escalators)
+# (rise in meters, one of a pair of up escalators)
 CASES = [(8.0, False), (12.0, False), (16.0, False), (20.0, False), (23.4, True)]
 
 

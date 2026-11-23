@@ -10,13 +10,13 @@ For that trial and other studies, see [RESEARCH.md](RESEARCH.md).
 
 ## Design principles
 
-- **Agent-based:** each person is modelled individually, with their own position,
+- **Agent-based:** each person is modeled individually, with their own position,
   lane, speed and timestamps.
 - **The engine has no display code:** it advances in fixed time steps and exposes
   its full state through `snapshot()`. The command line tool comes first, and a
   visual front end can be added later on the same engine without changing it.
 - **Reproducible:** every run takes a random seed.
-- **Pluggable strategies:** lane choice and behaviour live in strategy classes,
+- **Pluggable strategies:** lane choice and behavior live in strategy classes,
   so a new rule can be added without touching the engine.
 - **Standard library only** for the engine. Plotting and GUI dependencies stay
   optional.
@@ -83,7 +83,7 @@ the web version becomes the main product and fast page loads matter.
 | `walk_gap` | Minimum spacing for people walking (m). Fitted to measured flows (Davis & Dutta 2002) | 0.9 |
 | `board_headway` | Minimum time between boardings in one lane (s) | 0.5 |
 
-### Behaviour (stand-one-side-walk-the-other strategy)
+### Behavior (stand-one-side-walk-the-other strategy)
 | Parameter | Meaning | Default |
 |---|---|---|
 | `defect_threshold` | Queue-length difference at which a stander is tempted to walk in the walk lane | 10 |
