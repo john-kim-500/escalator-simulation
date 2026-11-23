@@ -176,7 +176,7 @@ Distances are in metres along the incline, times in seconds and speeds in m/s.
 | Flag | Default | Meaning |
 |---|---|---|
 | `--stand-gap` | 0.8 | Closest a stander gets to the person ahead (0.8 m ≈ leaving one step empty) |
-| `--walk-gap` | 1.2 | Closest a walker gets to the person ahead |
+| `--walk-gap` | 0.9 | Closest a walker gets to the person ahead (fitted to measured London flows) |
 | `--board-headway` | 0.5 | Minimum time between two people stepping onto the same lane |
 
 These set each lane's capacity. A full standing lane carries
@@ -270,8 +270,8 @@ python3 -m escalator_sim compare -n 20 --defect-prob 0
 python3 -m escalator_sim sweep --param walk_fraction --values 0,0.1,0.2,0.3,0.4,0.5,0.6 \
     --defect-prob 0 -n 10 -j 0
 
-# 3. A tall escalator (Holborn-like: 24 m rise), where few people walk
-python3 -m escalator_sim compare -n 20 --rise 24 --walk-fraction 0.1 --warmup 180 --duration 900
+# 3. A tall escalator (Holborn-like: 24 m rise), where about 45% walk at rush hour
+python3 -m escalator_sim compare -n 20 --rise 24 --walk-fraction 0.45 --warmup 180 --duration 900
 
 # 4. How much does lane switching rescue walk-left?
 python3 -m escalator_sim sweep --param defect_prob --values 0,0.1,0.3,0.6 -n 10 -j 0
@@ -279,8 +279,8 @@ python3 -m escalator_sim sweep --param defect_prob --values 0,0.1,0.3,0.6 -n 10 
 # 5. People standing in the walk lane
 python3 -m escalator_sim sweep --param blocker_rate --values 0,0.05,0.1,0.2 -n 10 -j 0
 
-# 6. How sensitive is the answer to the guessed spacing?
-python3 -m escalator_sim sweep --param walk_gap --values 0.8,1.2,1.6,2.0 -n 10 -j 0
+# 6. How sensitive is the answer to the spacing?
+python3 -m escalator_sim sweep --param walk_gap --values 0.6,0.9,1.2,1.6 -n 10 -j 0
 python3 -m escalator_sim sweep --param stand_gap --values 0.4,0.8,1.2 -n 10 -j 0
 
 # 7. From quiet to crowded
