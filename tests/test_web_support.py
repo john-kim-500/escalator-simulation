@@ -226,7 +226,8 @@ class SessionApi(unittest.TestCase):
         self.assertEqual(result["time_winners"],
                          [report.time_winner(p["time_saved"][0])
                           for p in result["data"]["points"]])
-        plain = {"kind": "compare", "config": SHORT, "strategies": both, "replications": 2}
+        plain = {"kind": "compare", "config": {**SHORT, "drain": 0}, "strategies": both,
+                 "replications": 2}
         self.assertEqual(run(plain)["time_winners"], ["-"])
         one = {**plain, "strategies": ["walk-left"]}
         self.assertEqual(run(one)["time_winners"], ["-"])

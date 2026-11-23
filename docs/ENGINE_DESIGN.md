@@ -242,12 +242,12 @@ the simulation's lists of people:
 - **Waits and trip times** cover people who *arrived* after the warm-up.
   Trip times are also split into people who want to walk ("cares") and
   everyone else ("others").
-- **Without the drain** (the default), anyone still waiting at the end counts
-  with the time they've waited so far, and anyone not yet at the top has no
-  trip time. So when the escalator can't keep up, waits and trips come out too
+- **With the drain** (`drain = 1`, the default), everyone measured has
+  finished, so waits and trips are complete. See below.
+- **Without it** (`drain = 0`), anyone still waiting at the end counts with
+  the time they've waited so far, and anyone not yet at the top has no trip
+  time. So when the escalator can't keep up, waits and trips come out too
   short.
-- **With the drain** (`drain = 1`), everyone measured has finished, so waits
-  and trips are complete. See below.
 - A warning is added if the warm-up is shorter than one ride from bottom to
   top. Otherwise the first minutes are measured before anyone could possibly
   have reached the top, and people per minute comes out too low.
@@ -265,7 +265,7 @@ drain. The animation stops at `duration` and doesn't show the drain.
 
 ### Finishing the line (drain)
 
-With `drain = 1`, `run()` calls `drain()` after reaching `duration`:
+With `drain = 1` (the default), `run()` calls `drain()` after reaching `duration`:
 
 1. It saves the line length at `duration`, for **Queue end**.
 2. It stops new arrivals.

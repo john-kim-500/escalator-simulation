@@ -104,7 +104,7 @@ test("snapshots carry kinds and a limited queue", { skip }, () => {
 });
 
 test("experiments run step by step", { skip }, () => {
-  const { total } = engine.expStart({ kind: "compare", config: SHORT,
+  const { total } = engine.expStart({ kind: "compare", config: { ...SHORT, drain: 0 },
     strategies: ["stand-both", "walk-left"], replications: 2, seed: 1 });
   assert.equal(total, 4);
   let p;

@@ -42,13 +42,14 @@ Escalator 30.0 m long (15 m rise), belt 0.75 m/s; 120 arrivals/min, 25% want to 
 
 Strategy    Thru/min    Wait avg s  Wait p95 s  Trip avg s  Walkers' trip s  Others' trip s  Max queue  Queue end  Walked
 ----------  ----------  ----------  ----------  ----------  ---------------  --------------  ---------  ---------  ------
-stand-both  112.2 ±0.5  24.3 ±6.7   39.5 ±9.3   63.4 ±6.9   63.3 ±7.0        63.4 ±6.9       89 ±18     85 ±17     0%
-walk-left   112.8 ±1.0  27.0 ±6.6   73.5 ±18.0  55.8 ±5.7   24.6 ±0.4        67.8 ±7.5       91 ±21     87 ±21     50%
+stand-both  112.2 ±0.5  26.4 ±7.4   43.8 ±9.6   66.4 ±7.4   66.3 ±7.4        66.4 ±7.3       89 ±18     85 ±17     0%
+walk-left   112.8 ±1.0  31.4 ±8.0   84.8 ±21.3  63.8 ±8.2   24.6 ±0.3        76.7 ±10.2      91 ±21     87 ±21     50%
 
-stand-both vs walk-left: throughput -0.5%, average wait -10.0%
+stand-both vs walk-left: throughput -0.5%, average wait -15.8%
 
 Walkers = people who want to walk, counted the same way under every strategy.
-Add --drain 1 to measure time saved for walkers.
+walk-left vs stand-both: walkers save 41.7 ±7.4 s per trip; others lose 10.2 ±5.1 s
+Fastest for walkers: walk-left
 ```
 
 The default settings are rough guesses, not measured values (see [Parameters](#parameters)).
@@ -200,7 +201,7 @@ These set each lane's capacity. A full standing lane carries
 | `--duration` | 600 | Simulated seconds |
 | `--warmup` | 120 | Seconds at the start that are left out of the results. Must be longer than one ride (see [Troubleshooting](#troubleshooting)) |
 | `--dt` | 0.1 | Time step. Smaller values are slightly more precise and slower |
-| `--drain` | 0 | `1` finishes the line: after the run ends, nobody new arrives and the run keeps going until everyone measured reaches the top. Waits and trip times are then complete. See [Finishing the line](#finishing-the-line) |
+| `--drain` | 1 | Finishes the line: after the run ends, nobody new arrives and the run keeps going until everyone measured reaches the top, so waits and trip times are complete. `0` stops at `--duration` instead. See [Finishing the line](#finishing-the-line) |
 
 > **The defaults are guesses.** The spacing, walking speed and lane-switching
 > values strongly affect the result and have not yet been checked against real
@@ -223,7 +224,7 @@ These set each lane's capacity. A full standing lane carries
 
 ### Time saved for walkers
 
-With `--drain 1`, `compare` adds a line like this:
+`compare` ends with lines like these:
 
 ```
 walk-left vs stand-both: walkers save 41.7 ±7.4 s per trip; others lose 10.2 ±5.1 s
@@ -238,8 +239,8 @@ Fastest for walkers: walk-left
   the same crowd.
 - **Fastest for walkers** is the strategy that saves walkers time by more than
   the margin of error, or `tie`.
-- `sweep --drain 1` adds the same figures as two columns.
-- **Without `--drain 1`** you get a hint instead. Each strategy then leaves out
+- `sweep` adds the same figures as two columns.
+- **With `--drain 0`** you get a hint instead. Each strategy then leaves out
   a different set of people who hadn't finished, so the comparison wouldn't be
   fair (see [Finishing the line](#finishing-the-line)).
 
@@ -250,26 +251,19 @@ Things to keep in mind:
   and throughput simply equals the arrival rate. The strategies then differ only
   in waiting time. To test the theory, use rush-hour arrival rates, where
   **Queue end** is large.
-- **Under overload, waits and trips are too low unless you use `--drain 1`.**
-  By default, people still in the queue at the end count with the time
-  they've waited so far, and trip times leave out everyone not yet at the top.
-  A large and growing **Queue end** means the queue never stops growing, and
-  the real waits keep rising with the run length.
+- **Under overload, waits and trips grow with the run length.** A large and
+  growing **Queue end** means the queue never stops growing, so the longer the
+  run, the longer the last people wait. With `--drain 0`, waits and trips are
+  also too low, because people still in the queue at the end count with the
+  time they've waited so far, and trip times leave out everyone not yet at the
+  top.
 - **Height doesn't change who walks yet.** In reality fewer people walk up tall
   escalators. Here the share is set by `--walk-fraction` alone, so when you
   sweep `rise`, also set the walk fraction you expect for that height.
 
 ### Finishing the line
 
-By default a run stops at `--duration`. People still in line or on the
-escalator then have no finished trip:
-- their wait counts as the time waited so far;
-- their trip is left out of **Trip avg s**.
-
-When the escalator is overloaded, that leaves out the longest waits and trips.
-It leaves out more of them for the strategy with the longer line.
-
-`--drain 1` fixes this:
+By default (`--drain 1`) the run finishes the line:
 - After `--duration`, nobody new arrives, and the run keeps going until everyone
   who arrived after the warm-up has reached the top.
 - Waits and trip times are then complete. They are exactly what these people
@@ -278,10 +272,17 @@ It leaves out more of them for the strategy with the longer line.
 - **Thru/min**, **Max queue**, **Queue end** and **Walked** still cover only
   the warm-up to `--duration`, so they don't change.
 - A heavily overloaded run takes longer, because clearing the line takes time.
-  At 150 arrivals/min, `compare` takes about 30% longer.
+  At the default settings `compare` takes about 15% longer than with
+  `--drain 0`, and at 150 arrivals/min about 30% longer.
 
-Use it when comparing waits or trip times under rush-hour settings. With spare
-capacity it makes little difference.
+`--drain 0` stops at `--duration` instead. People still in line or on the
+escalator then have no finished trip:
+- their wait counts as the time waited so far;
+- their trip is left out of **Trip avg s**.
+
+When the escalator is overloaded, that leaves out the longest waits and trips,
+and more of them for the strategy with the longer line. With spare capacity
+the two settings give almost the same results.
 
 ## Saving results: JSON and CSV
 
@@ -306,7 +307,7 @@ python3 -m escalator_sim compare -n 20 --output json > compare.json
   who switch to walking). `cares_count` and `others_count` are how many of
   each were measured. They're the same for every strategy on the same seed.
 - `finished` counts people at the top by `--duration`. `drained` is `1` if the
-  run used `--drain 1`.
+  run finished the line (the default) and `0` with `--drain 0`.
 - `sweep`: one row per parameter value and strategy, with `<metric>_mean` and
   `<metric>_ci95` columns. In a sweep over `lanes`, the extra lane columns
   are added at the end and left empty for the rows with fewer lanes.
@@ -326,7 +327,7 @@ In `summary`, each metric has the form `{ "mean": …, "ci95": …, "n": … }`.
 `cares` and `others` are `{ mean, ci95, n }` of the per-seed savings:
 `over`'s average trip minus `by`'s, for people who want to walk and for
 everyone else. Positive means `by` is faster. The numbers are only a fair
-comparison when `drained` is `true` (`--drain 1`).
+comparison when `drained` is `true` (the default; not with `--drain 0`).
 
 ## Recipes for testing the theory
 
@@ -348,8 +349,8 @@ python3 -m escalator_sim sweep --param defect_prob --values 0,0.1,0.3,0.6 -n 10 
 python3 -m escalator_sim sweep --param blocker_rate --values 0,0.05,0.1,0.2 -n 10 -j 0
 
 # 5b. Time saved for walkers, and how a few people standing in the walk lane cancel it
-python3 -m escalator_sim compare -n 20 --drain 1
-python3 -m escalator_sim sweep --param blocker_rate --values 0,0.02,0.05,0.1 --drain 1 -n 10 -j 0
+python3 -m escalator_sim compare -n 20
+python3 -m escalator_sim sweep --param blocker_rate --values 0,0.02,0.05,0.1 -n 10 -j 0
 
 # 6. How sensitive is the answer to the spacing?
 python3 -m escalator_sim sweep --param walk_gap --values 0.6,0.9,1.2,1.6 -n 10 -j 0
@@ -398,7 +399,7 @@ settings on the left. The animation pauses while Experiments is showing.
 | Escalators | One per strategy, seen from above, with the top of the escalator at the top. Every strategy gets the same crowd. Shapes show who is who: ● standing, ▲ walking, ◆ a stander who switched to walking, ■ standing in the walk lane. The queue is below each lane; a number like `97 (+57)` means 97 are queueing and 57 of them didn't fit in the drawing |
 | Live numbers | People at the top, throughput over the last 60 s, queue per lane, average wait so far, walkers' and others' average trip so far, and share walking |
 | People at the top | A chart of how many people have reached the top over time, per strategy. The dashed line is everyone who has arrived. The shaded area is the warm-up |
-| Results | When the run finishes, the same metrics as `run`, measured after the warm-up, side by side. With two strategies and **Finish the line** at 1, a line gives the time saved for walkers and others on this crowd |
+| Results | When the run finishes, the same metrics as `run`, measured after the warm-up, side by side. With two strategies, a line gives the time saved for walkers and others on this crowd (needs **Finish the line** at 1, the default) |
 
 The live numbers include the warm-up and cover only one crowd. Use
 Experiments (or `compare`) for conclusions over many crowds.
@@ -411,8 +412,8 @@ Experiments (or `compare`) for conclusions over many crowds.
 | Strategies, Replications, First seed | Like `--strategies`, `-n` and `--seed`. The defaults are the command line's: 10 replications for Compare and 5 for Sweep. The line below the form says how many runs that is |
 | Setting to vary (Sweep only) | Any parameter. Enter the values as a **Range** (from, to, step) or a **List** such as `0, 0.1, 0.25`. Up to 50 values. The swept values replace that setting from the panel on the left |
 | Run / Cancel | A progress bar shows the runs done and the estimated time left. Cancel stops after the current slice of runs |
-| Results | The command line's table, with mean ±95% margin of error. Compare adds the percentage difference and whether the throughput lead is bigger than the margins of error. Sweep shows the leader at each value, or `tie`, using the command line's rule. With **Finish the line** at 1, both also show the time saved for walkers and the **Fastest for walkers** (see [Time saved for walkers](#time-saved-for-walkers)); otherwise a hint says to turn it on |
-| Charts | Compare: throughput and average wait per strategy, with error bars. Sweep: throughput and average wait against the swept value, with a shaded band for the margin of error. With **Finish the line** at 1, a third chart shows the time saved per trip for walkers and others; below zero means they lose time |
+| Results | The command line's table, with mean ±95% margin of error. Compare adds the percentage difference and whether the throughput lead is bigger than the margins of error. Sweep shows the leader at each value, or `tie`, using the command line's rule. Both also show the time saved for walkers and the **Fastest for walkers** (see [Time saved for walkers](#time-saved-for-walkers)). With **Finish the line** at 0, a hint replaces them |
+| Charts | Compare: throughput and average wait per strategy, with error bars. Sweep: throughput and average wait against the swept value, with a shaded band for the margin of error. A third chart shows the time saved per trip for walkers and others; below zero means they lose time. It's left out with **Finish the line** at 0 |
 | Download CSV / JSON | Exactly what `--output csv` / `--output json` prints for the same experiment, so files from either can be analyzed the same way |
 | Watch this scenario | Opens the live view with that result's settings and its first seed. In a sweep, each row has its own **Watch** button |
 
@@ -436,7 +437,7 @@ while not sim.done:
     sim.step()                     # advances config.dt seconds
     state = sim.snapshot()         # plain dict, see below
 print(sim.results())               # same metrics as the `run` command
-# With drain=1 in the config, call sim.drain() first to finish the line
+# With drain=1 (the default), call sim.drain() first to finish the line
 
 # Or run to the end in one call
 result = Simulation(config, "stand-both", seed=1).run()
