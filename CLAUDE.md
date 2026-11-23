@@ -4,6 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Agent-based simulation testing whether an escalator moves more people when everyone stands on both sides (`stand-both`) than with stand-right/walk-left (`walk-left`). Design rationale is in `docs/PLAN.md`; how the browser GUI and the engine fit together is in `docs/APP_DESIGN.md`; how the engine runs each step is in `docs/ENGINE_DESIGN.md`; the GUI milestone status is in `docs/GUI_PLAN.md`; user-facing docs are in `docs/USAGE.md`; studies and real-world data (with how carefully each has been checked) are in `docs/RESEARCH.md`. All documentation except this file and `README.md` lives in `docs/`.
 
+## Directives
+
+- **Commits and PR titles:** use semantic style, `type: summary` (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`). The PR title becomes the merge commit title.
+- **Documentation language:** when writing or reviewing docs, use business English with American spelling and usage.
+- **Be terse:** prefer short, direct sentences. Cut filler and repetition.
+- **No jargon:** readers may know software, math or civil engineering, but not all three. Avoid terms from any of them (e.g. "deque", "O(n)", "Poisson process", "headway", "throughput"). Say it plainly: "people per minute", "minimum time between two people stepping on". Code names are fine in `code font` with a plain explanation.
+
 ## Commands
 
 ```bash
