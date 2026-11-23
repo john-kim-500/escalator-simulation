@@ -23,11 +23,12 @@ from escalator_sim.report import time_winner, winner
 
 STRATEGIES = ["stand-both", "walk-left"]
 
-# Main settings, tables 1-6: Holborn's escalators 5/6 (23.4 m rise, one of a pair; used in the
-# 2015 trial, Harrison et al. 2016), with values from Davis & Dutta (2002) as calibrated in
-# tests/test_calibration.py: belt speed and step depth measured; walk_gap fitted to their
-# walking-side formula; 45% walk, from their formulas (47.4 walking, 58.4 standing per minute);
-# no lane switching, since their formulas count lanes as observed.
+# Main settings, tables 1-6. All values are from Davis & Dutta (2002), who counted Holborn's
+# escalators 4-7: rise 23.4 m (their Holborn 5, 23.39 m; one of a pair); belt speed and step
+# depth as they measured; walk_gap fitted to their walking-side formula; 45% walk, from their
+# formulas (47.4 walking, 58.4 standing per minute); no lane switching, since their formulas
+# count lanes as observed. See tests/test_calibration.py. (The same escalators were later used
+# for the 2015 trial.)
 DAVIS_DUTTA_2002_HOLBORN = dict(
     rise=23.4, belt_speed=0.72, step_depth=0.4, walk_gap=0.9, walk_fraction=0.45,
     defect_prob=0.0, blocker_rate=0.0, warmup=180.0, duration=900.0, drain=1,

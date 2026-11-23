@@ -60,7 +60,10 @@ Underground." IIM Ahmedabad working paper 2002-11-01.
 **What they did:** counted people standing and people walking separately on
 busy up escalators at 10 central London stations, while a line was waiting at
 the bottom. All escalators were under stand-right/walk-left. Escalator heights
-(rise) ranged from about 7.6 m to 23.4 m.
+(rise) ranged from about 7.6 m to 23.4 m. **Holborn was one of the stations**:
+they counted escalators 4–7 (Figure 6.4). Holborn 5, at 23.39 m, is the
+tallest in their data (Chart 7.2). The same tall escalators were later used
+for the 2015 trial.
 
 **What they found:** two formulas for people per minute on each side, by
 height:
@@ -83,6 +86,24 @@ formulas by several people per minute.
 **Known mismatch:** in the paper, the standing side carries more people on
 taller escalators (people squeeze in from the walking line). The simulation's
 standing side carries a fixed number, so it is about 7% low at 23 m.
+
+**Their own Holborn experiment (section 8.1):** Holborn already asked people
+to stand on both sides of the up escalators when busy. With the supervisor's
+help, announcements ran about every two minutes. Findings, all on escalator 3:
+- **Most people ignored the announcements.** They believed walking carried
+  more people, or wanted to save their own time.
+- **Only two readings had both sides standing.** They gave **49.4 per minute
+  on the standing side and 75.6 per minute standing on the walking side**,
+  about 10 more than usually walk there. 75.6 standing in one lane is more
+  than this simulation allows (54 per minute at 0.72 m/s with one empty step),
+  so people must have stood closer together.
+- **People stood only because one or two did**, which forced everyone behind
+  them to stand. Those behind kept pushing to walk, and in both readings they
+  soon did.
+- **Their conclusion:** the experiment couldn't show what an escalator carries
+  when everyone stands. Finding out would take counts from systems where
+  standing on both sides is normal, or a simulation of people on and around
+  escalators.
 
 **Walkers' time:** not measured. Two related points:
 - **People in a hurry walk more (measured).** On Friday nights at Leicester
@@ -136,6 +157,8 @@ be counted twice
 earlier test at Holborn in 2002 was judged
 inconclusive, because people didn't keep standing on both sides for long
 ([IanVisits](https://www.ianvisits.co.uk/articles/holborn-tests-standing-on-both-sides-of-the-escalator-15833/)).
+This is very likely Davis & Dutta's own experiment
+([details](#davis--dutta-2002-counts-at-10-london-stations)).
 
 **Walkers' time:** not measured. The trial planned "timed walks from
 platforms" (section 4.2), but the report gives no results for them. The only
