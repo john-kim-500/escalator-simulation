@@ -72,7 +72,7 @@ sequenceDiagram
     R->>S: step()
     Note over S: End of this step = (steps + 1) × dt
 
-    rect rgb(235, 242, 255)
+    rect rgba(66, 133, 244, 0.15)
     Note over S,L: 1. New arrivals
     loop while the next arrival is before the end of this step
         S->>A: Wants to walk? How fast?
@@ -89,7 +89,7 @@ sequenceDiagram
     end
 
     loop for each lane
-        rect rgb(235, 250, 238)
+        rect rgba(52, 168, 83, 0.15)
         Note over S,E: 2a. Move everyone on the escalator (top first)
         loop each person, from the top down
             S->>E: Move at escalator speed (+ walking speed if walking),<br/>no closer than own spacing to the person in front,<br/>never slower than the escalator
@@ -101,7 +101,7 @@ sequenceDiagram
         S->>T: Forget exits older than one minute (for the live display)
         end
 
-        rect rgb(255, 245, 230)
+        rect rgba(251, 140, 0, 0.15)
         Note over S,E: 2b. Let people step on
         loop while someone is waiting in this lane's line
             S->>S: Earliest moment they can step on = latest of<br/>start of step, their arrival,<br/>minimum time since the last person stepped on,<br/>room left by the last person on the escalator
@@ -115,7 +115,7 @@ sequenceDiagram
         end
     end
 
-    rect rgb(245, 238, 250)
+    rect rgba(156, 39, 176, 0.15)
     Note over S,T: 3. Record line lengths
     opt warm-up period is over
         S->>T: Add total and per-lane line lengths
