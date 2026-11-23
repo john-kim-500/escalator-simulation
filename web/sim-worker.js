@@ -14,7 +14,10 @@ const ready = (async () => {
     loadPyodide,
     pyodideOptions: { indexURL: PYODIDE_CDN },
     readFile: async (path) => {
-      const response = await fetch(new URL(path, base));
+      // Always check with the server: simple servers (python3 -m http.server)
+      // send no caching rules, so the browser could otherwise mix old and new
+      // copies of the package's files after an update.
+      const response = await fetch(new URL(path, base), { cache: "no-cache" });
       if (!response.ok) throw new Error(`could not load ${path} (HTTP ${response.status})`);
       return response.text();
     },
