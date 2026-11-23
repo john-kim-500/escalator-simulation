@@ -7,6 +7,8 @@ the original question: which rule moves more people per minute?
 
 All numbers come from the simulation, not from measurements. See
 [What the model leaves out](#what-the-model-leaves-out) before quoting them.
+For the time saved by walkers and standers in two short tables, see
+[FINDINGS_SUMMARY.md](FINDINGS_SUMMARY.md).
 
 ## Summary
 
@@ -294,8 +296,8 @@ lane 44.2, against about 48 and 56 here. The likely reasons:
 - walkers can't always reach a free space.
 
 These are the same things listed in [What the model leaves out](#what-the-model-leaves-out).
-They all favor everyone standing, so this simulation's 4–7% is probably a low
-estimate of the gain at the peak. Real counts sit between the two models:
+Leaving them out favors walk-left here, so this simulation's 4–7% is probably a
+low estimate of the gain at the peak. Real counts sit between the two models:
 Davis & Dutta measured about 106 per minute under walk-left at this height,
 and the Holborn report counted 27% more people in an hour on the escalator
 where everyone stood.

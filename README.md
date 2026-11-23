@@ -13,6 +13,7 @@ theory, and troubleshooting.
 
 **Results so far: [docs/FINDINGS.md](docs/FINDINGS.md)**: how much time walking
 saves at a tall, busy escalator (Holborn), and what it costs everyone else.
+Short version: [docs/FINDINGS_SUMMARY.md](docs/FINDINGS_SUMMARY.md).
 
 ## Web interface
 
