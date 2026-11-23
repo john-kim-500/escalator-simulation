@@ -42,10 +42,10 @@ Escalator 30.0 m long (15 m rise), belt 0.75 m/s; 120 arrivals/min, 25% want to 
 
 Strategy    Thru/min    Wait avg s  Wait p95 s  Trip avg s  Max queue  Queue end  Walked
 ----------  ----------  ----------  ----------  ----------  ---------  ---------  ------
-stand-both  112.2 ±0.4  21.9 ±6.2   37.0 ±9.2   61.0 ±6.0   83 ±20     74 ±25     0%
-walk-left   111.1 ±0.7  28.8 ±4.8   68.0 ±12.2  58.9 ±4.2   99 ±20     91 ±23     49%
+stand-both  112.2 ±0.5  24.3 ±6.7   39.5 ±9.3   63.4 ±6.9   89 ±18     85 ±17     0%
+walk-left   112.8 ±1.0  27.0 ±6.6   73.5 ±18.0  55.8 ±5.7   91 ±21     87 ±21     50%
 
-stand-both vs walk-left: throughput +1.0%, average wait -24.1%
+stand-both vs walk-left: throughput -0.5%, average wait -10.0%
 ```
 
 The default settings are rough guesses, not measured values (see [Parameters](#parameters)).

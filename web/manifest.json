@@ -5,6 +5,7 @@
     "__main__.py",
     "cli.py",
     "config.py",
+    "draws.py",
     "engine.py",
     "experiments.py",
     "metrics.py",

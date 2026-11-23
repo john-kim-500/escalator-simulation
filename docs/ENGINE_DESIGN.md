@@ -2,9 +2,9 @@
 
 This document explains how the simulation itself works, step by step. The code
 is mainly in `escalator_sim/engine.py`, with help from `person.py`,
-`strategies.py` and `metrics.py`. For how the simulation connects to the
-browser app, see `APP_DESIGN.md`. For *why* the model is built this way, see
-`PLAN.md`.
+`strategies.py`, `draws.py` (random numbers) and `metrics.py`. For how the
+simulation connects to the browser app, see `APP_DESIGN.md`. For *why* the
+model is built this way, see `PLAN.md`.
 
 The last sections list possible changes to the code and open questions. They
 are a starting point for discussion, not an agreed plan.
@@ -78,7 +78,7 @@ sequenceDiagram
         S->>A: Wants to walk? How fast?
         A-->>S: yes or no, walking speed
         S->>St: Which line, and walk or stand?<br/>(given current line lengths)
-        Note right of St: Uses its own random source,<br/>so the crowd is the same<br/>under every strategy
+        Note right of St: Uses its own random numbers,<br/>so the crowd is the same<br/>under every strategy
         St-->>S: lane, walking
         S->>St: Label for the animation?
         St-->>S: stander, walker, defector or blocker
@@ -153,19 +153,27 @@ lane).
 ### The same crowd for every strategy
 
 All the random choices come from a seed number, so a run can be repeated
-exactly. The simulation uses two separate sources of random numbers made from
-the seed:
+exactly. Each random number (`draws.py`) is worked out from three things: the
+seed, what it's for (its *purpose*, such as `walk_speed` or `blocker`), and
+the person's number. It doesn't depend on any other random number, or on the
+order they're used in.
 
-- one for **who arrives, when, and how they'd like to travel**;
-- one for **the choices the strategy makes** (for example, whether a stander
-  gives up and walks).
+Arrival purposes (when people arrive, whether they want to walk, how fast)
+are separate from strategy purposes (line ties, blocking, switching to walk).
+So a given seed produces **exactly the same people arriving at exactly the
+same times under every strategy**. Only how they're handled differs. This is
+what makes the comparison between strategies fair.
 
-Because they are separate, a given seed produces **exactly the same people
-arriving at exactly the same times under every strategy**. Only how they're
-handled differs. This is what makes the comparison between strategies fair.
+Two more results follow:
 
-> Any change to how arrivals are drawn (adding, removing or reordering a random
-> choice) changes the results for every seed.
+- **Adding a new random choice changes nothing that exists.** A new purpose
+  gets its own numbers, so the crowd and every existing choice stay the same.
+- **Sweeps compare like with like.** Person 12 has the same underlying
+  numbers at every `walk_fraction` or `arrival_rate`, so the points differ
+  only by the setting.
+
+> Renaming a purpose, or changing how one turns into a value, changes the
+> results for every seed. Add a new purpose instead.
 
 ### Moving people on the escalator
 
@@ -290,8 +298,8 @@ trip times separately for people who want to walk and everyone else.
 
 - **The same results for the same seed.** Compare the output of
   `python3 -m escalator_sim run` before and after.
-- **The order of the random choices in arrivals**, so the crowd stays the
-  same.
+- **The existing random-number purposes in `draws.py`**, unchanged. Add new
+  ones instead, so the crowd stays the same.
 - **The rules that let the same code run in the browser** (see `CLAUDE.md`):
   only Python's built-in libraries; results as plain lists, numbers and text;
   no reading or writing files; no waiting or background tasks.

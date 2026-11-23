@@ -56,7 +56,7 @@ That one decision shapes the rest of the design:
 
 | Layer | Files | Owns | Never does |
 |---|---|---|---|
-| Model | `config.py`, `person.py`, `strategies.py`, `engine.py`, `metrics.py` | The simulation and its statistics | I/O, timing, formatting |
+| Model | `config.py`, `person.py`, `draws.py`, `strategies.py`, `engine.py`, `metrics.py` | The simulation and its statistics | I/O, timing, formatting |
 | Batch runs | `experiments.py` | Splitting experiments into independent jobs and putting the results back together | Deciding *how* jobs run |
 | Output | `report.py` | Winner/tie rule, CSV and JSON text | Printing or saving files |
 | Front-end API | `session.py` | One front end's state; JSON in and out | Anything the CLI also needs (that lives lower down) |
@@ -269,14 +269,14 @@ Nothing is saved between page loads.
 
 ## Determinism
 
-`Simulation` uses two separate random streams, both seeded from the run's seed:
+Each random number comes from `Draws` (`draws.py`): a hash of the seed, a
+purpose and the person's number. No number depends on another, or on order.
 
-- **Arrivals** (`"arrivals-{seed}"`): arrival times, who wants to walk, and
-  walking speeds. Always drawn in the same order.
-- **Behavior** (`"behaviour-{seed}"`): strategy decisions such as defecting
-  and blocking.
+- **Arrival purposes:** arrival gaps, who wants to walk, and walking speeds.
+- **Behavior purposes:** strategy decisions such as line ties, defecting and
+  blocking.
 
-Strategies differ only in how they use the behavior stream. So with the same
+Strategies differ only in which behavior purposes they use. So with the same
 seed, every strategy faces **the same crowd**. That's what makes the
 side-by-side animation and the compared experiments a fair like-for-like test.
 Experiments use seeds `seed, seed+1, …` for every strategy.
@@ -298,6 +298,9 @@ These tests guard the boundaries described above:
   differ in the last digits, because Pyodide's Python 3.14 sums floats
   differently from 3.11.
 - `web/tests/helpers.test.mjs`: the pure JavaScript helpers.
+- `tests/test_engine.py` (`RandomDraws`, `Reproducibility`): pins a few
+  random values, and checks that a new random choice leaves the crowd and
+  every existing choice unchanged.
 - `tests/test_calibration.py`: checks the engine against measured London
   Underground flows. It uses explicit settings, so it keeps working if the
   defaults change.
@@ -308,6 +311,7 @@ These tests guard the boundaries described above:
 |---|---|---|
 | New parameter | `SimConfig` field, `PARAM_INFO` entry, validation | `info` → config panel, sweep list, CLI flags |
 | New strategy | `Strategy` subclass with `@register` in `strategies.py` | `info.strategies` → checkboxes in both views, CLI choices |
+| New random choice | A new purpose constant in `draws.py`, drawn with `person.id` as the index | Nothing else: existing crowds and results stay the same |
 | New per-person label | `KINDS` plus the strategy's `kind()`, then a `--kind-*` color and a shape in `escalator-canvas.js` | `info.kinds` → legend |
 | New result metric | `metrics.summarize` / `aggregate`; columns in `report.py` | CSV/JSON automatically; GUI tables list their metrics explicitly |
 | New engine module | Add the `.py` file **and** add it to `web/manifest.json` | Pyodide file system on load |

@@ -64,7 +64,8 @@ One Python engine (`escalator_sim/`) serves both the CLI and the browser. The br
 
 ### Python package
 - `config.py`: `SimConfig` is one flat frozen dataclass; each field maps one-to-one to a CLI flag (`walk_fraction` → `--walk-fraction`), a sweep parameter and a GUI control. `PARAM_INFO` (label, unit, group, min/max/step, help) and `GROUPS` drive both the CLI `--help` and the GUI's config panel, and `PRESETS` holds the named scenarios. **Adding a parameter means updating the dataclass, `PARAM_INFO`, and validation**; tests check that every field is described and that ranges contain defaults.
-- `strategies.py`: `Strategy` subclasses registered with `@register`; `choose()` returns `(lane, walking)` on arrival and `kind()` labels people for display (`stander`/`walker`/`defector`/`blocker`). Lane 0 is the walk (left) lane.
+- `draws.py`: every random number. `Draws(seed)` hashes (seed, purpose, person number), so no draw depends on another or on order. **Never rename or re-key an existing purpose** (it changes every seed's crowd); add a new purpose constant instead. Don't use `random` in the engine except to pick a seed.
+- `strategies.py`: `Strategy` subclasses registered with `@register`; `choose(person, queue_lengths, draws)` returns `(lane, walking)` on arrival and `kind()` labels people for display (`stander`/`walker`/`defector`/`blocker`). Lane 0 is the walk (left) lane.
 - `engine.py`: `Simulation(config, strategy, seed)` with `step()`, `run()`, `snapshot(max_queue)`, `live_stats()` (cheap running counts for per-frame use) and `results()`.
 - `experiments.py`: `compare`/`sweep` are built from `plan_*() → jobs`, `run_one(job)`, `collect(plan, runs)`. The split lets the worker run one job at a time for progress and cancel. All strategies get the same seeds, so they face identical arrivals.
 - `session.py`: the JSON-string API (`Session`) the browser calls. Every method takes and returns JSON strings; `dumps()` turns non-finite floats into `null` because `JSON.parse` rejects them.
@@ -78,5 +79,6 @@ One Python engine (`escalator_sim/`) serves both the CLI and the browser. The br
 - Chart.js is the only front-end library, loaded at a pinned version from jsDelivr.
 
 ### Cross-checks to preserve
+- `tests/test_engine.py` pins a few `Draws` values; if they change, every seed's results changed.
 - For a fixed seed, GUI/Pyodide results must equal native `python3 -m escalator_sim run`. Pyodide ships Python 3.14, whose float summation differs slightly from 3.11, so the Node test compares counts exactly and averages with a tolerance.
 - The warm-up must exceed one ride (`length / belt_speed`), otherwise metrics carry a warning. Tests use `duration=180, warmup=60` for speed.

@@ -48,6 +48,9 @@ much time does each strategy save them?** It builds on the model in
 
 ## Early numbers (to set direction, not to quote)
 
+These were made before the random numbers were keyed by person (`draws.py`),
+so the same seeds now give different crowds and slightly different numbers.
+
 A throwaway script on the Holborn settings, averaged over seeds 1–3:
 - 23.4 m rise, 45% want to walk
 - belt 0.72 m/s, steps 0.4 m

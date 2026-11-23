@@ -128,10 +128,13 @@ Metrics are measured after the warm-up period:
 escalator_sim/
   config.py      # dataclasses for the parameters above
   person.py      # Person state
+  draws.py       # random numbers keyed by seed, purpose and person
   strategies.py  # Strategy base class + registry
   engine.py      # Simulation: step(), run(), snapshot(), results()
   metrics.py     # summary statistics
   experiments.py # compare / sweep across seeds (plain data; reusable from the web UI)
+  report.py      # CSV/JSON output and the winner/tie rule
+  session.py     # JSON-string API the browser calls
   cli.py         # argparse entry point (python3 -m escalator_sim)
 tests/           # unittest (pytest is not installed)
 ```
